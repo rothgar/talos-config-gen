@@ -1,0 +1,83 @@
+export interface TalosVersion {
+  version: string
+  label: string
+  k8sVersion: string
+  installerImage: string
+  kubeletImage: string
+  apiServerImage: string
+  controllerManagerImage: string
+  schedulerImage: string
+  proxyImage: string
+  etcdImage: string
+  coreDNSImage: string
+}
+
+export const TALOS_VERSIONS: TalosVersion[] = [
+  {
+    version: 'v1.9.2',
+    label: 'v1.9.2 (latest)',
+    k8sVersion: 'v1.31.4',
+    installerImage: 'ghcr.io/siderolabs/installer:v1.9.2',
+    kubeletImage: 'ghcr.io/siderolabs/kubelet:v1.31.4',
+    apiServerImage: 'registry.k8s.io/kube-apiserver:v1.31.4',
+    controllerManagerImage: 'registry.k8s.io/kube-controller-manager:v1.31.4',
+    schedulerImage: 'registry.k8s.io/kube-scheduler:v1.31.4',
+    proxyImage: 'registry.k8s.io/kube-proxy:v1.31.4',
+    etcdImage: 'gcr.io/etcd-development/etcd:v3.5.17-amd64',
+    coreDNSImage: 'registry.k8s.io/coredns/coredns:v1.11.3',
+  },
+  {
+    version: 'v1.8.4',
+    label: 'v1.8.4',
+    k8sVersion: 'v1.31.3',
+    installerImage: 'ghcr.io/siderolabs/installer:v1.8.4',
+    kubeletImage: 'ghcr.io/siderolabs/kubelet:v1.31.3',
+    apiServerImage: 'registry.k8s.io/kube-apiserver:v1.31.3',
+    controllerManagerImage: 'registry.k8s.io/kube-controller-manager:v1.31.3',
+    schedulerImage: 'registry.k8s.io/kube-scheduler:v1.31.3',
+    proxyImage: 'registry.k8s.io/kube-proxy:v1.31.3',
+    etcdImage: 'gcr.io/etcd-development/etcd:v3.5.16-amd64',
+    coreDNSImage: 'registry.k8s.io/coredns/coredns:v1.11.3',
+  },
+  {
+    version: 'v1.7.7',
+    label: 'v1.7.7',
+    k8sVersion: 'v1.30.6',
+    installerImage: 'ghcr.io/siderolabs/installer:v1.7.7',
+    kubeletImage: 'ghcr.io/siderolabs/kubelet:v1.30.6',
+    apiServerImage: 'registry.k8s.io/kube-apiserver:v1.30.6',
+    controllerManagerImage: 'registry.k8s.io/kube-controller-manager:v1.30.6',
+    schedulerImage: 'registry.k8s.io/kube-scheduler:v1.30.6',
+    proxyImage: 'registry.k8s.io/kube-proxy:v1.30.6',
+    etcdImage: 'gcr.io/etcd-development/etcd:v3.5.15-amd64',
+    coreDNSImage: 'registry.k8s.io/coredns/coredns:v1.11.3',
+  },
+  {
+    version: 'v1.6.7',
+    label: 'v1.6.7',
+    k8sVersion: 'v1.29.7',
+    installerImage: 'ghcr.io/siderolabs/installer:v1.6.7',
+    kubeletImage: 'ghcr.io/siderolabs/kubelet:v1.29.7',
+    apiServerImage: 'registry.k8s.io/kube-apiserver:v1.29.7',
+    controllerManagerImage: 'registry.k8s.io/kube-controller-manager:v1.29.7',
+    schedulerImage: 'registry.k8s.io/kube-scheduler:v1.29.7',
+    proxyImage: 'registry.k8s.io/kube-proxy:v1.29.7',
+    etcdImage: 'gcr.io/etcd-development/etcd:v3.5.12-amd64',
+    coreDNSImage: 'registry.k8s.io/coredns/coredns:v1.11.1',
+  },
+  {
+    version: 'v1.5.6',
+    label: 'v1.5.6',
+    k8sVersion: 'v1.28.8',
+    installerImage: 'ghcr.io/siderolabs/installer:v1.5.6',
+    kubeletImage: 'ghcr.io/siderolabs/kubelet:v1.28.8',
+    apiServerImage: 'registry.k8s.io/kube-apiserver:v1.28.8',
+    controllerManagerImage: 'registry.k8s.io/kube-controller-manager:v1.28.8',
+    schedulerImage: 'registry.k8s.io/kube-scheduler:v1.28.8',
+    proxyImage: 'registry.k8s.io/kube-proxy:v1.28.8',
+    etcdImage: 'gcr.io/etcd-development/etcd:v3.5.10-amd64',
+    coreDNSImage: 'registry.k8s.io/coredns/coredns:v1.10.1',
+  },
+]
+
+export const DEFAULT_VERSION = TALOS_VERSIONS[0]
