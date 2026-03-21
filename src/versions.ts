@@ -22,8 +22,27 @@ export interface TalosVersion {
 
 export const TALOS_VERSIONS: TalosVersion[] = [
   {
+    version: 'v1.12.6',
+    label: 'v1.12.6 (latest)',
+    k8sVersion: 'v1.35.2',
+    installerImage: 'ghcr.io/siderolabs/installer:v1.12.6',
+    kubeletImage: 'ghcr.io/siderolabs/kubelet:v1.35.2',
+    apiServerImage: 'registry.k8s.io/kube-apiserver:v1.35.2',
+    controllerManagerImage: 'registry.k8s.io/kube-controller-manager:v1.35.2',
+    schedulerImage: 'registry.k8s.io/kube-scheduler:v1.35.2',
+    proxyImage: 'registry.k8s.io/kube-proxy:v1.35.2',
+    etcdImage: 'registry.k8s.io/etcd:v3.6.8',
+    coreDNSImage: 'registry.k8s.io/coredns/coredns:v1.13.2',
+    supportedFeatures: {
+      userVolumes: true,
+      diskQuotaSupport: true,
+      stableHostname: true,
+      proxyModeNftables: true,
+    },
+  },
+  {
     version: 'v1.9.2',
-    label: 'v1.9.2 (latest)',
+    label: 'v1.9.2',
     k8sVersion: 'v1.31.4',
     installerImage: 'ghcr.io/siderolabs/installer:v1.9.2',
     kubeletImage: 'ghcr.io/siderolabs/kubelet:v1.31.4',
