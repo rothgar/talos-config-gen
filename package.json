@@ -1,31 +1,29 @@
 {
   "name": "talos-config-gen",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vue-tsc && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "vue": "^3.5.13",
+    "@headlessui/vue": "^1.7.23",
+    "@heroicons/vue": "^2.2.0",
+    "@monaco-editor/loader": "^1.4.0",
     "js-yaml": "^4.1.0",
-    "lz-string": "^1.5.0",
-    "@uiw/react-codemirror": "^4.23.7",
-    "@codemirror/lang-yaml": "^6.1.2",
-    "@codemirror/theme-one-dark": "^6.1.2"
+    "lz-string": "^1.5.0"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
-    "@vitejs/plugin-react": "^4.3.4",
+    "@vitejs/plugin-vue": "^5.2.1",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.6.3",
-    "vite": "^6.0.5"
+    "vite": "^6.0.5",
+    "vue-tsc": "^2.2.0"
   }
 }

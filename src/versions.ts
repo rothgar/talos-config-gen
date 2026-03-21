@@ -1,3 +1,10 @@
+export interface SupportedFeatures {
+  userVolumes: boolean       // machine.userVolumes — v1.8+
+  diskQuotaSupport: boolean  // machine.features.diskQuotaSupport — v1.6+
+  stableHostname: boolean    // machine.features.stableHostname — all versions
+  proxyModeNftables: boolean // cluster.proxy.mode = 'nftables' — v1.7+
+}
+
 export interface TalosVersion {
   version: string
   label: string
@@ -10,6 +17,7 @@ export interface TalosVersion {
   proxyImage: string
   etcdImage: string
   coreDNSImage: string
+  supportedFeatures: SupportedFeatures
 }
 
 export const TALOS_VERSIONS: TalosVersion[] = [
@@ -25,6 +33,12 @@ export const TALOS_VERSIONS: TalosVersion[] = [
     proxyImage: 'registry.k8s.io/kube-proxy:v1.31.4',
     etcdImage: 'gcr.io/etcd-development/etcd:v3.5.17-amd64',
     coreDNSImage: 'registry.k8s.io/coredns/coredns:v1.11.3',
+    supportedFeatures: {
+      userVolumes: true,
+      diskQuotaSupport: true,
+      stableHostname: true,
+      proxyModeNftables: true,
+    },
   },
   {
     version: 'v1.8.4',
@@ -38,6 +52,12 @@ export const TALOS_VERSIONS: TalosVersion[] = [
     proxyImage: 'registry.k8s.io/kube-proxy:v1.31.3',
     etcdImage: 'gcr.io/etcd-development/etcd:v3.5.16-amd64',
     coreDNSImage: 'registry.k8s.io/coredns/coredns:v1.11.3',
+    supportedFeatures: {
+      userVolumes: true,
+      diskQuotaSupport: true,
+      stableHostname: true,
+      proxyModeNftables: true,
+    },
   },
   {
     version: 'v1.7.7',
@@ -51,6 +71,12 @@ export const TALOS_VERSIONS: TalosVersion[] = [
     proxyImage: 'registry.k8s.io/kube-proxy:v1.30.6',
     etcdImage: 'gcr.io/etcd-development/etcd:v3.5.15-amd64',
     coreDNSImage: 'registry.k8s.io/coredns/coredns:v1.11.3',
+    supportedFeatures: {
+      userVolumes: false,
+      diskQuotaSupport: true,
+      stableHostname: true,
+      proxyModeNftables: true,
+    },
   },
   {
     version: 'v1.6.7',
@@ -64,6 +90,12 @@ export const TALOS_VERSIONS: TalosVersion[] = [
     proxyImage: 'registry.k8s.io/kube-proxy:v1.29.7',
     etcdImage: 'gcr.io/etcd-development/etcd:v3.5.12-amd64',
     coreDNSImage: 'registry.k8s.io/coredns/coredns:v1.11.1',
+    supportedFeatures: {
+      userVolumes: false,
+      diskQuotaSupport: true,
+      stableHostname: true,
+      proxyModeNftables: false,
+    },
   },
   {
     version: 'v1.5.6',
@@ -77,6 +109,12 @@ export const TALOS_VERSIONS: TalosVersion[] = [
     proxyImage: 'registry.k8s.io/kube-proxy:v1.28.8',
     etcdImage: 'gcr.io/etcd-development/etcd:v3.5.10-amd64',
     coreDNSImage: 'registry.k8s.io/coredns/coredns:v1.10.1',
+    supportedFeatures: {
+      userVolumes: false,
+      diskQuotaSupport: false,
+      stableHostname: true,
+      proxyModeNftables: false,
+    },
   },
 ]
 
