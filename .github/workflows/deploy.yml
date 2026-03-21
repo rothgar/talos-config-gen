@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - claude/talos-config-generator-BufNL
   workflow_dispatch:
 
 permissions:
