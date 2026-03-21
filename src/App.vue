@@ -104,6 +104,12 @@ function handleShare() {
   window.history.replaceState(null, '', url)
 }
 
+function handleSharePatch() {
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '')
+  const url = `${window.location.origin}${base}/patches/${version.value.version}-${config.value.machine.type}.yaml`
+  navigator.clipboard.writeText(url).catch(() => {})
+}
+
 const currentYaml = computed(() =>
   yamlDirty.value ? yamlText.value : configToYaml(config.value),
 )
@@ -120,6 +126,7 @@ const currentYaml = computed(() =>
       @version-change="handleVersionChange"
       @download="handleDownload"
       @share="handleShare"
+      @share-patch="handleSharePatch"
     />
 
     <main class="flex-1 overflow-hidden">

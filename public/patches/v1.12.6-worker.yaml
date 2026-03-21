@@ -1,0 +1,53 @@
+version: v1alpha1
+debug: false
+persist: true
+machine:
+  type: worker
+  network:
+    nameservers:
+      - 1.1.1.1
+      - 8.8.8.8
+  install:
+    disk: /dev/sda
+    image: ghcr.io/siderolabs/installer:v1.12.6
+    bootloader: true
+    wipe: false
+  kubelet:
+    image: ghcr.io/siderolabs/kubelet:v1.35.2
+  features:
+    rbac: true
+    stableHostname: true
+    apidCheckExtKeyUsage: true
+    diskQuotaSupport: true
+cluster:
+  clusterName: talos-cluster
+  network:
+    dnsDomain: cluster.local
+    podSubnets:
+      - 10.244.0.0/16
+    serviceSubnets:
+      - 10.96.0.0/12
+    cni:
+      name: flannel
+  apiServer:
+    image: registry.k8s.io/kube-apiserver:v1.35.2
+    disablePodSecurityPolicy: true
+  controllerManager:
+    image: registry.k8s.io/kube-controller-manager:v1.35.2
+  scheduler:
+    image: registry.k8s.io/kube-scheduler:v1.35.2
+  etcd:
+    image: registry.k8s.io/etcd:v3.6.8
+  discovery:
+    enabled: true
+    registries:
+      kubernetes:
+        disabled: false
+      service: {}
+  coreDNS:
+    disabled: false
+    image: registry.k8s.io/coredns/coredns:v1.13.2
+  proxy:
+    disabled: false
+    mode: iptables
+  allowSchedulingOnControlPlanes: false
