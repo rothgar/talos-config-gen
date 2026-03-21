@@ -119,7 +119,7 @@ function handleVersionChange(ev: Event) {
         <!-- Patch URL -->
         <button
           type="button"
-          title="Copy default patch YAML URL (curl/wget friendly)"
+          title="Copy patch YAML as data: URI (curl-friendly, unique to current config)"
           class="btn-secondary text-xs"
           :class="{ 'text-green border-green/40': patchCopied }"
           @click="handleSharePatch"

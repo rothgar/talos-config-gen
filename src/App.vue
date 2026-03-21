@@ -105,8 +105,9 @@ function handleShare() {
 }
 
 function handleSharePatch() {
-  const base = import.meta.env.BASE_URL.replace(/\/$/, '')
-  const url = `${window.location.origin}${base}/patches/${version.value.version}-${config.value.machine.type}.yaml`
+  const text = yamlDirty.value ? yamlText.value : configToYaml(config.value)
+  const b64 = btoa(unescape(encodeURIComponent(text)))
+  const url = `data:text/yaml;base64,${b64}`
   navigator.clipboard.writeText(url).catch(() => {})
 }
 

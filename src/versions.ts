@@ -8,6 +8,7 @@ export interface SupportedFeatures {
 export interface TalosVersion {
   version: string
   label: string
+  prerelease?: boolean
   k8sVersion: string
   installerImage: string
   kubeletImage: string
@@ -21,6 +22,26 @@ export interface TalosVersion {
 }
 
 export const TALOS_VERSIONS: TalosVersion[] = [
+  {
+    version: 'v1.13.0-beta.0',
+    label: 'v1.13.0-beta.0 (beta)',
+    prerelease: true,
+    k8sVersion: 'v1.36.0-alpha.2',
+    installerImage: 'ghcr.io/siderolabs/installer:v1.13.0-beta.0',
+    kubeletImage: 'ghcr.io/siderolabs/kubelet:v1.36.0-alpha.2',
+    apiServerImage: 'registry.k8s.io/kube-apiserver:v1.36.0-alpha.2',
+    controllerManagerImage: 'registry.k8s.io/kube-controller-manager:v1.36.0-alpha.2',
+    schedulerImage: 'registry.k8s.io/kube-scheduler:v1.36.0-alpha.2',
+    proxyImage: 'registry.k8s.io/kube-proxy:v1.36.0-alpha.2',
+    etcdImage: 'registry.k8s.io/etcd:v3.6.8',
+    coreDNSImage: 'registry.k8s.io/coredns/coredns:v1.14.2',
+    supportedFeatures: {
+      userVolumes: true,
+      diskQuotaSupport: true,
+      stableHostname: true,
+      proxyModeNftables: true,
+    },
+  },
   {
     version: 'v1.12.6',
     label: 'v1.12.6 (latest)',
@@ -175,4 +196,4 @@ export const TALOS_VERSIONS: TalosVersion[] = [
   },
 ]
 
-export const DEFAULT_VERSION = TALOS_VERSIONS[0]
+export const DEFAULT_VERSION = TALOS_VERSIONS.find((v) => !v.prerelease) ?? TALOS_VERSIONS[0]
