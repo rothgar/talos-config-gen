@@ -19,6 +19,9 @@ machine:
     stableHostname: true
     apidCheckExtKeyUsage: true
     diskQuotaSupport: true
+    kubePrism:
+      enabled: true
+      port: 7445
 cluster:
   clusterName: talos-cluster
   network:
@@ -31,7 +34,6 @@ cluster:
       name: flannel
   apiServer:
     image: registry.k8s.io/kube-apiserver:v1.30.6
-    disablePodSecurityPolicy: true
   controllerManager:
     image: registry.k8s.io/kube-controller-manager:v1.30.6
   scheduler:
