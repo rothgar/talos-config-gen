@@ -13,37 +13,8 @@ const emit = defineEmits<{
   (e: 'update:config', val: TalosConfig): void
 }>()
 
-// ---------------------------------------------------------------------------
-// Proxy vs direct-API mode
-//
-// VITE_AI_PROXY_URL is injected at build time by the GitHub Actions workflow
-// when a Cloudflare Worker has been deployed. When set the browser sends
-// requests to the worker (which holds the Anthropic key server-side).
-// When not set the user must supply their own Anthropic API key.
-// ---------------------------------------------------------------------------
+// VITE_AI_PROXY_URL is baked in at build time by the GitHub Actions pipeline.
 const PROXY_URL: string = import.meta.env.VITE_AI_PROXY_URL ?? ''
-const usingProxy = PROXY_URL.length > 0
-
-// ---------------------------------------------------------------------------
-// User API key (only needed when not using the proxy)
-// ---------------------------------------------------------------------------
-const STORAGE_KEY = 'talos-ai-api-key'
-const apiKey = ref<string>(localStorage.getItem(STORAGE_KEY) ?? '')
-const showApiKeyInput = ref<boolean>(!usingProxy && !apiKey.value)
-
-function saveApiKey() {
-  localStorage.setItem(STORAGE_KEY, apiKey.value)
-  showApiKeyInput.value = false
-}
-
-function clearApiKey() {
-  apiKey.value = ''
-  localStorage.removeItem(STORAGE_KEY)
-  showApiKeyInput.value = true
-}
-
-// True when the tab is ready to send messages
-const canSend = computed(() => usingProxy || apiKey.value.length > 0)
 
 // ---------------------------------------------------------------------------
 // Chat state
@@ -56,7 +27,6 @@ interface Message {
 const messages = ref<Message[]>([])
 const inputText = ref('')
 const isStreaming = ref(false)
-const error = ref<string | null>(null)
 const messagesEl = ref<HTMLElement | null>(null)
 
 // ---------------------------------------------------------------------------
@@ -73,35 +43,33 @@ Current configuration (for context):
 ${currentYaml}
 \`\`\`
 
-Your job:
-1. Help the user generate or modify a complete, valid Talos v1alpha1 machine config YAML.
-2. If required fields are missing (install disk like /dev/sda, controlplane endpoint like https://192.168.1.10:6443, machine type), ask the user for them before generating a full config.
-3. When you produce a final config, output it as a single fenced YAML code block (triple backtick yaml).
-4. Only output one YAML block per response — the complete config, not snippets.
-5. Use the correct Talos v1alpha1 structure with 'version: v1alpha1', 'debug: false', 'persist: true', 'machine:' and 'cluster:' top-level keys.
+Rules:
+1. Generate complete, valid Talos v1alpha1 machine config YAML.
+2. REQUIRED fields — if the user has not provided them, ask before generating:
+   - Machine type: controlplane or worker
+   - Install disk: e.g. /dev/sda (run \`talosctl disks\` to list)
+   - Cluster endpoint (controlplane only): e.g. https://192.168.1.10:6443
+3. Cluster name: always invent a short, memorable two-word name (adjective + noun, e.g. "iron-falcon", "quiet-mesa", "swift-harbor"). Never use "talos-cluster" or generic names.
+4. Output exactly one fenced YAML code block per response — the complete config, not snippets.
+5. Use the correct structure: version: v1alpha1, debug: false, persist: true, machine: and cluster: top-level keys.
 6. Default installer image: ${props.version.installerImage}
 7. Default kubelet image: ${props.version.kubeletImage}
-8. Use these Kubernetes component images from this version:
+8. Kubernetes component images for this version:
    - kube-apiserver: ${props.version.apiServerImage}
    - kube-controller-manager: ${props.version.controllerManagerImage}
    - kube-scheduler: ${props.version.schedulerImage}
    - etcd: ${props.version.etcdImage}
    - coredns: ${props.version.coreDNSImage}
-9. Be concise but helpful. Ask clarifying questions when needed.`
+9. Be concise. Only ask for one missing piece of information at a time.`
 }
 
 // ---------------------------------------------------------------------------
-// Streaming fetch — routes to proxy or Anthropic directly
+// Streaming fetch via the embedded proxy
 // ---------------------------------------------------------------------------
 async function sendMessage() {
   const text = inputText.value.trim()
   if (!text || isStreaming.value) return
-  if (!canSend.value) {
-    showApiKeyInput.value = true
-    return
-  }
 
-  error.value = null
   messages.value.push({ role: 'user', content: text })
   inputText.value = ''
   await scrollToBottom()
@@ -111,28 +79,19 @@ async function sendMessage() {
   isStreaming.value = true
 
   try {
-    const body = {
-      model: 'claude-opus-4-6',
-      max_tokens: 4096,
-      system: buildSystemPrompt(),
-      stream: true,
-      messages: messages.value
-        .slice(0, -1)
-        .map((m) => ({ role: m.role, content: m.content })),
-    }
-
-    // Build request based on mode
-    const url = usingProxy ? PROXY_URL : 'https://api.anthropic.com/v1/messages'
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (usingProxy) {
-      // No auth header — the worker injects the Anthropic key server-side
-    } else {
-      headers['x-api-key'] = apiKey.value
-      headers['anthropic-version'] = '2023-06-01'
-      headers['anthropic-dangerous-direct-browser-access'] = 'true'
-    }
-
-    const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) })
+    const response = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-opus-4-6',
+        max_tokens: 4096,
+        system: buildSystemPrompt(),
+        stream: true,
+        messages: messages.value
+          .slice(0, -1)
+          .map((m) => ({ role: m.role, content: m.content })),
+      }),
+    })
 
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}))
@@ -167,7 +126,6 @@ async function sendMessage() {
     }
   } catch (e: any) {
     messages.value[idx].content = `⚠️ Error: ${e.message}`
-    error.value = e.message
   } finally {
     isStreaming.value = false
   }
@@ -191,7 +149,7 @@ function applyYaml(yaml: string) {
 }
 
 // ---------------------------------------------------------------------------
-// Render helpers — simple markdown-like rendering
+// Render helpers
 // ---------------------------------------------------------------------------
 function renderContent(content: string): { type: 'text' | 'yaml'; value: string }[] {
   const parts: { type: 'text' | 'yaml'; value: string }[] = []
@@ -211,198 +169,27 @@ function renderContent(content: string): { type: 'text' | 'yaml'; value: string 
   return parts
 }
 
-// ---------------------------------------------------------------------------
-// Required-fields setup form (shown before the first message)
-// ---------------------------------------------------------------------------
-interface SetupForm {
-  type: 'controlplane' | 'worker'
-  disk: string
-  endpoint: string // controlplane endpoint — only required for controlplane
-  extra: string    // optional free-text for additional context
-}
-
-const setupForm = ref<SetupForm>({
-  type: 'controlplane',
-  disk: '',
-  endpoint: '',
-  extra: '',
-})
-
-function submitSetupForm() {
-  const f = setupForm.value
-  const parts: string[] = [
-    `Generate a ${f.type} node config.`,
-    `Install disk: ${f.disk || '/dev/sda'}.`,
-  ]
-  if (f.type === 'controlplane') {
-    parts.push(`Cluster endpoint: ${f.endpoint || 'https://192.168.1.10:6443'}.`)
-  }
-  if (f.extra.trim()) parts.push(f.extra.trim())
-  inputText.value = parts.join(' ')
-  sendMessage()
-}
-
 const hasMessages = computed(() => messages.value.length > 0)
 </script>
 
 <template>
   <div class="flex flex-col h-full">
-    <!-- Proxy mode banner -->
-    <div v-if="usingProxy" class="border-b border-border bg-surface-2 px-4 py-1.5 flex items-center justify-between">
-      <span class="text-xs text-muted">
-        <span class="text-green font-medium">●</span>
-        AI powered by the project — limited to Talos config generation · 20 req/hour
-      </span>
-      <button
-        type="button"
-        class="text-xs text-muted hover:text-text transition-colors"
-        @click="showApiKeyInput = !showApiKeyInput"
-      >
-        Use your own key
-      </button>
-    </div>
-
-    <!-- User API key entry (direct mode, or override in proxy mode) -->
-    <div
-      v-if="showApiKeyInput"
-      class="border-b border-border bg-surface-2 px-4 py-3"
-    >
-      <div class="max-w-2xl mx-auto">
-        <p class="text-xs text-muted mb-2">
-          Enter your
-          <a
-            href="https://console.anthropic.com/settings/keys"
-            target="_blank"
-            rel="noopener"
-            class="text-blue underline"
-          >Anthropic API key</a>
-          to use AI assistance directly. Stored only in your browser's localStorage.
-          <template v-if="usingProxy"> Overrides the shared proxy key.</template>
-        </p>
-        <div class="flex gap-2">
-          <input
-            v-model="apiKey"
-            type="password"
-            placeholder="sk-ant-..."
-            class="input-base font-mono text-xs flex-1"
-            @keydown.enter="saveApiKey"
-          />
-          <button
-            type="button"
-            class="btn-primary text-xs"
-            :disabled="!apiKey.trim()"
-            @click="saveApiKey"
-          >
-            Save
-          </button>
-          <button v-if="usingProxy" type="button" class="btn-secondary text-xs" @click="showApiKeyInput = false">
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Direct mode: key configured indicator -->
-    <div
-      v-else-if="!usingProxy"
-      class="border-b border-border bg-surface-2 px-4 py-1.5 flex items-center justify-between"
-    >
-      <span class="text-xs text-muted">
-        <span class="text-green font-medium">●</span> Using your API key
-      </span>
-      <button type="button" class="text-xs text-muted hover:text-text transition-colors" @click="clearApiKey">
-        Change key
-      </button>
-    </div>
-
     <!-- Messages area -->
     <div ref="messagesEl" class="flex-1 overflow-y-auto px-4 py-4">
-      <!-- Setup form when no messages yet -->
-      <div v-if="!hasMessages" class="max-w-xl mx-auto mt-6">
-        <div class="text-center mb-5">
-          <div class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 mb-2">
-            <svg class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-            </svg>
-          </div>
-          <h2 class="text-sm font-semibold text-text mb-1">Natural Language Config</h2>
-          <p class="text-xs text-muted">Fill in the required fields and Claude will generate a complete Talos config.</p>
+      <!-- Empty state hint -->
+      <div v-if="!hasMessages" class="max-w-xl mx-auto mt-10 text-center">
+        <div class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 mb-3">
+          <svg class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+          </svg>
         </div>
-
-        <!-- Required fields form -->
-        <div class="rounded-xl border border-border bg-surface-2 p-5 space-y-4">
-
-          <!-- Node type -->
-          <div>
-            <label class="block text-xs font-medium text-text mb-1.5">Node type <span class="text-red-400">*</span></label>
-            <div class="flex gap-2">
-              <button
-                type="button"
-                class="flex-1 py-2 px-3 rounded-lg border text-xs font-medium transition-colors"
-                :class="setupForm.type === 'controlplane'
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border bg-surface text-muted hover:text-text hover:border-border-hover'"
-                @click="setupForm.type = 'controlplane'"
-              >
-                Controlplane
-              </button>
-              <button
-                type="button"
-                class="flex-1 py-2 px-3 rounded-lg border text-xs font-medium transition-colors"
-                :class="setupForm.type === 'worker'
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border bg-surface text-muted hover:text-text hover:border-border-hover'"
-                @click="setupForm.type = 'worker'"
-              >
-                Worker
-              </button>
-            </div>
-          </div>
-
-          <!-- Install disk -->
-          <div>
-            <label class="block text-xs font-medium text-text mb-1">Install disk <span class="text-red-400">*</span></label>
-            <input
-              v-model="setupForm.disk"
-              type="text"
-              placeholder="/dev/sda"
-              class="input-base text-xs w-full font-mono"
-            />
-            <p class="text-[10px] text-muted mt-1">The disk Talos will install to. Run <code class="font-mono">talosctl disks</code> to list available disks.</p>
-          </div>
-
-          <!-- Cluster endpoint (controlplane only) -->
-          <div v-if="setupForm.type === 'controlplane'">
-            <label class="block text-xs font-medium text-text mb-1">Cluster endpoint <span class="text-red-400">*</span></label>
-            <input
-              v-model="setupForm.endpoint"
-              type="text"
-              placeholder="https://192.168.1.10:6443"
-              class="input-base text-xs w-full font-mono"
-            />
-            <p class="text-[10px] text-muted mt-1">The VIP or load-balancer address the API server will be reachable at.</p>
-          </div>
-
-          <!-- Optional extra context -->
-          <div>
-            <label class="block text-xs font-medium text-text mb-1">Additional requirements <span class="text-muted font-normal">(optional)</span></label>
-            <textarea
-              v-model="setupForm.extra"
-              rows="2"
-              placeholder="e.g. static IP 192.168.1.10, 3-node HA cluster, custom DNS, extra disks for Ceph…"
-              class="input-base text-xs w-full resize-none leading-relaxed"
-            />
-          </div>
-
-          <button
-            type="button"
-            class="btn-primary text-xs w-full py-2"
-            :disabled="!setupForm.disk.trim() || (setupForm.type === 'controlplane' && !setupForm.endpoint.trim()) || isStreaming || !canSend"
-            @click="submitSetupForm"
-          >
-            Generate Config
-          </button>
-        </div>
+        <h2 class="text-sm font-semibold text-text mb-2">Describe your cluster in plain English</h2>
+        <p class="text-xs text-muted leading-relaxed">
+          Include your <span class="text-text font-medium">install disk</span> (e.g. <code class="font-mono">/dev/sda</code>)
+          and <span class="text-text font-medium">cluster endpoint</span> (e.g. <code class="font-mono">https://192.168.1.10:6443</code>)
+          and a config will be generated straight away.<br />
+          If you leave them out, the AI will ask.
+        </p>
       </div>
 
       <!-- Conversation -->
@@ -481,7 +268,7 @@ const hasMessages = computed(() => messages.value.length > 0)
         <textarea
           v-model="inputText"
           rows="2"
-          placeholder="Describe your cluster setup, or ask for help with specific settings…"
+          placeholder="e.g. controlplane on /dev/sda, endpoint https://192.168.1.10:6443, 3-node HA…"
           class="input-base text-xs flex-1 resize-none leading-relaxed"
           style="min-height: 56px; max-height: 200px"
           :disabled="isStreaming"
@@ -491,7 +278,7 @@ const hasMessages = computed(() => messages.value.length > 0)
         <button
           type="button"
           class="btn-primary text-xs flex-shrink-0 self-end"
-          :disabled="!inputText.trim() || isStreaming || !canSend"
+          :disabled="!inputText.trim() || isStreaming"
           @click="sendMessage"
         >
           <svg v-if="!isStreaming" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
