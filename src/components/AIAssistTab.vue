@@ -14,7 +14,8 @@ const emit = defineEmits<{
 }>()
 
 // VITE_AI_PROXY_URL is baked in at build time by the GitHub Actions pipeline.
-const PROXY_URL: string = import.meta.env.VITE_AI_PROXY_URL ?? ''
+// In local dev (no env var), fall back to the Vite dev server proxy at /api/ai.
+const PROXY_URL: string = import.meta.env.VITE_AI_PROXY_URL || '/api/ai'
 
 // ---------------------------------------------------------------------------
 // Chat state
