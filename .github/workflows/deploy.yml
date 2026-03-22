@@ -17,14 +17,14 @@ concurrency:
   cancel-in-progress: false
 
 # ---------------------------------------------------------------------------
-# Required GitHub Secrets (Settings → Secrets and variables → Actions):
+# Required GitHub Secrets (Settings → Secrets and variables → Actions → Secrets):
 #
 #   CF_API_TOKEN        Cloudflare API token — Scope: Account / Workers Scripts:Edit
 #   ANTHROPIC_API_KEY   Your Anthropic API key
 #
-# Required GitHub Variables (Settings → Secrets and variables → Actions → Variables):
-#
-#   CF_ACCOUNT_ID       Cloudflare Account ID (Dashboard → right sidebar)
+# CF_ACCOUNT_ID can be stored as either a Secret or a Variable:
+#   As a Secret:   Settings → Secrets and variables → Actions → Secrets → CF_ACCOUNT_ID
+#   As a Variable: Settings → Secrets and variables → Actions → Variables → CF_ACCOUNT_ID
 #
 # Optional GitHub Variables:
 #
@@ -41,7 +41,8 @@ jobs:
     runs-on: ubuntu-latest
     # Skip this job when CF credentials are not configured so the workflow
     # still works for contributors / forks that only want the static site.
-    if: ${{ vars.CF_ACCOUNT_ID != '' }}
+    # CF_ACCOUNT_ID can be stored as a Variable or a Secret.
+    if: ${{ vars.CF_ACCOUNT_ID != '' || secrets.CF_ACCOUNT_ID != '' }}
     outputs:
       worker_url: ${{ steps.deploy.outputs.worker_url }}
     steps:
@@ -62,7 +63,7 @@ jobs:
         working-directory: worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CF_ACCOUNT_ID }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CF_ACCOUNT_ID || secrets.CF_ACCOUNT_ID }}
         run: |
           # Push secrets into the worker
           echo "${{ secrets.ANTHROPIC_API_KEY }}" \
