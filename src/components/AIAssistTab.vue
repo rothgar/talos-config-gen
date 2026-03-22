@@ -54,7 +54,7 @@ Rules:
    - Install disk: e.g. /dev/sda (run \`talosctl disks\` to list)
    - Cluster endpoint: e.g. https://192.168.1.10:6443
 4. Cluster name: always invent a short, memorable two-word name (adjective + noun, e.g. "iron-falcon", "quiet-mesa", "swift-harbor"). Never use "talos-cluster" or generic names.
-5. Output exactly one fenced YAML code block per response — the complete config, not snippets.
+5. Output YAML in a single fenced code block. If a UserVolumeConfig is needed, append it after the machine config separated by ---. Never output partial configs or snippets.
 6. Use the correct structure: version: v1alpha1, debug: false, persist: true, machine: and cluster: top-level keys.
 7. Default installer image: ${props.version.installerImage}
 8. Default kubelet image: ${props.version.kubeletImage}
@@ -64,23 +64,29 @@ Rules:
    - kube-scheduler: ${props.version.schedulerImage}
    - etcd: ${props.version.etcdImage}
    - coredns: ${props.version.coreDNSImage}
-10. Persistent storage / volume mounts (e.g. Longhorn, local-path):
-    - ALWAYS use machine.userVolumes[] — NEVER use machine.disks[].partitions[].mountpoint for this purpose.
-    - machine.disks is only for raw partitioning without mounts; it does NOT create mounted filesystems.
-    - Correct userVolume structure:
-        machine:
-          userVolumes:
-            - name: <name>
-              provisioning:
-                diskSelector:
-                  name: <device>   # or: match: system_disk
-                minSize: <size>Gi
-                maxSize: <size>Gi
-              filesystem:
-                type: xfs          # or ext4
-              mount:
-                path: /var/mnt/<name>
-    - Sizes MUST use Kubernetes quantity notation: Gi (not GB), Mi (not MB).
+10. Persistent storage / volume mounts (e.g. Longhorn, local-path, extra data disks):
+    - Use a standalone UserVolumeConfig document — NEVER use machine.disks[].partitions[].mountpoint.
+    - machine.disks is for raw partitioning only; it does NOT create mounted filesystems.
+    - UserVolumeConfig is a separate document appended after --- in the same code block.
+    - Volumes automatically mount at /var/mnt/<name> with disk label u-<name>. No mount field needed.
+    - Correct schema:
+        ---
+        apiVersion: v1alpha1
+        kind: UserVolumeConfig
+        metadata:
+          name: <name>           # 1-34 chars, letters/digits/hyphens
+        provisioning:
+          diskSelector:
+            match: "<CEL expr>"  # e.g. disk.transport == 'nvme', or disk.size > 100GB
+          minSize: <N>GiB        # use GiB (not GB, not Gi)
+          maxSize: <N>GiB        # or e.g. "80%" to use 80% of the disk
+        filesystem:
+          type: xfs              # or ext4
+    - Common diskSelector CEL expressions:
+        disk.transport == 'nvme'          # any NVMe
+        disk.transport == 'sata'          # any SATA
+        "sda" in disk.symlinks            # specific device
+        disk.size > 500GB                 # by minimum size
 11. Be concise. Only ask for one missing piece of information at a time.`
 }
 
