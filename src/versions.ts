@@ -1,6 +1,7 @@
 export interface SupportedFeatures {
   userVolumes: boolean       // machine.userVolumes — v1.8+
   diskQuotaSupport: boolean  // machine.features.diskQuotaSupport — v1.6+
+  kubePrism: boolean         // machine.features.kubePrism — v1.6+
   stableHostname: boolean    // machine.features.stableHostname — all versions
   proxyModeNftables: boolean // cluster.proxy.mode = 'nftables' — v1.7+
 }
@@ -38,6 +39,7 @@ export const TALOS_VERSIONS: TalosVersion[] = [
     supportedFeatures: {
       userVolumes: true,
       diskQuotaSupport: true,
+      kubePrism: true,
       stableHostname: true,
       proxyModeNftables: true,
     },
@@ -57,6 +59,7 @@ export const TALOS_VERSIONS: TalosVersion[] = [
     supportedFeatures: {
       userVolumes: true,
       diskQuotaSupport: true,
+      kubePrism: true,
       stableHostname: true,
       proxyModeNftables: true,
     },
@@ -76,6 +79,7 @@ export const TALOS_VERSIONS: TalosVersion[] = [
     supportedFeatures: {
       userVolumes: true,
       diskQuotaSupport: true,
+      kubePrism: true,
       stableHostname: true,
       proxyModeNftables: true,
     },
@@ -95,6 +99,7 @@ export const TALOS_VERSIONS: TalosVersion[] = [
     supportedFeatures: {
       userVolumes: true,
       diskQuotaSupport: true,
+      kubePrism: true,
       stableHostname: true,
       proxyModeNftables: true,
     },
@@ -114,6 +119,7 @@ export const TALOS_VERSIONS: TalosVersion[] = [
     supportedFeatures: {
       userVolumes: true,
       diskQuotaSupport: true,
+      kubePrism: true,
       stableHostname: true,
       proxyModeNftables: true,
     },
@@ -133,6 +139,7 @@ export const TALOS_VERSIONS: TalosVersion[] = [
     supportedFeatures: {
       userVolumes: true,
       diskQuotaSupport: true,
+      kubePrism: true,
       stableHostname: true,
       proxyModeNftables: true,
     },
@@ -152,6 +159,7 @@ export const TALOS_VERSIONS: TalosVersion[] = [
     supportedFeatures: {
       userVolumes: false,
       diskQuotaSupport: true,
+      kubePrism: true,
       stableHostname: true,
       proxyModeNftables: true,
     },
@@ -171,6 +179,7 @@ export const TALOS_VERSIONS: TalosVersion[] = [
     supportedFeatures: {
       userVolumes: false,
       diskQuotaSupport: true,
+      kubePrism: true,
       stableHostname: true,
       proxyModeNftables: false,
     },
@@ -190,6 +199,7 @@ export const TALOS_VERSIONS: TalosVersion[] = [
     supportedFeatures: {
       userVolumes: false,
       diskQuotaSupport: false,
+      kubePrism: false,
       stableHostname: true,
       proxyModeNftables: false,
     },

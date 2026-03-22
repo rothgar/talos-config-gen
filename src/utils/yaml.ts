@@ -69,6 +69,7 @@ export function configToDoc(config: TalosConfig) {
   if (ns.length > 0) networkDoc.nameservers = ns
   const sd = m.network.searchDomains.filter(Boolean)
   if (sd.length > 0) networkDoc.searchDomains = sd
+  if (m.network.kubespan?.enabled) networkDoc.kubespan = { enabled: true }
 
   // Machine install
   const installDoc: Record<string, unknown> = {
@@ -93,6 +94,9 @@ export function configToDoc(config: TalosConfig) {
     stableHostname: m.features.stableHostname,
     apidCheckExtKeyUsage: m.features.apidCheckExtKeyUsage,
     diskQuotaSupport: m.features.diskQuotaSupport,
+  }
+  if (m.features.kubePrism?.enabled) {
+    featuresDoc.kubePrism = { enabled: true, port: m.features.kubePrism.port || 7445 }
   }
 
   // Machine section
@@ -327,6 +331,7 @@ export function yamlToConfig(yamlStr: string): { config: TalosConfig; error: nul
           : [],
         nameservers: toStrArray(mNet.nameservers),
         searchDomains: toStrArray(mNet.searchDomains),
+        kubespan: { enabled: toBool((mNet.kubespan as Record<string, unknown>)?.enabled, false) },
       },
       install: {
         disk: toStr(mInstall.disk, '/dev/sda'),
@@ -345,6 +350,10 @@ export function yamlToConfig(yamlStr: string): { config: TalosConfig; error: nul
         stableHostname: toBool(mFeatures.stableHostname, true),
         apidCheckExtKeyUsage: toBool(mFeatures.apidCheckExtKeyUsage, true),
         diskQuotaSupport: toBool(mFeatures.diskQuotaSupport, true),
+        kubePrism: {
+          enabled: toBool((mFeatures.kubePrism as Record<string, unknown>)?.enabled, false),
+          port: toNum((mFeatures.kubePrism as Record<string, unknown>)?.port, 7445),
+        },
       },
       env: recordToKV(m.env),
       sysctls: recordToKV(m.sysctls),
@@ -361,7 +370,7 @@ export function yamlToConfig(yamlStr: string): { config: TalosConfig; error: nul
         dnsDomain: toStr(cNet.dnsDomain, 'cluster.local'),
         podSubnets: toStrArray(cNet.podSubnets),
         serviceSubnets: toStrArray(cNet.serviceSubnets),
-        cniName: (toStr(cCNI.name, 'flannel') as 'flannel' | 'calico' | 'custom' | 'none'),
+        cniName: (toStr(cCNI.name, 'flannel') as 'flannel' | 'custom' | 'none'),
         cniUrls: toStrArray(cCNI.urls),
       },
       allowSchedulingOnControlPlanes: toBool(c.allowSchedulingOnControlPlanes, false),

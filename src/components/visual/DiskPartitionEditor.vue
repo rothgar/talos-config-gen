@@ -99,15 +99,19 @@ const ephemeralMiB = computed(() => {
 // ---------------------------------------------------------------------------
 // Partition bar segments
 // ---------------------------------------------------------------------------
+// Use explicit hex colors so Tailwind purge doesn't strip them
+const FIXED_SYSTEM_COLOR = '#475569'   // slate-600
+const FIXED_STATE_COLOR = '#6d28d9'    // violet-700
+const FIXED_EPHEMERAL_COLOR = '#52525b' // zinc-600
 const USER_COLORS = [
-  'bg-teal-600',
-  'bg-orange-500',
-  'bg-rose-600',
-  'bg-cyan-600',
-  'bg-amber-600',
-  'bg-emerald-600',
-  'bg-pink-600',
-  'bg-indigo-500',
+  '#0d9488', // teal-600
+  '#f97316', // orange-500
+  '#e11d48', // rose-600
+  '#0891b2', // cyan-600
+  '#d97706', // amber-600
+  '#059669', // emerald-600
+  '#db2777', // pink-600
+  '#6366f1', // indigo-500
 ]
 
 interface Segment {
@@ -116,7 +120,7 @@ interface Segment {
   sublabel: string
   sizeMiB: number
   fixed: boolean
-  colorClass: string
+  color: string
   volume?: UserVolume
 }
 
@@ -127,7 +131,7 @@ const segments = computed((): Segment[] => [
     sublabel: formatMiB(SYSTEM_MIB),
     sizeMiB: SYSTEM_MIB,
     fixed: true,
-    colorClass: 'bg-slate-600',
+    color: FIXED_SYSTEM_COLOR,
   },
   {
     key: '__state',
@@ -135,7 +139,7 @@ const segments = computed((): Segment[] => [
     sublabel: formatMiB(STATE_MIB),
     sizeMiB: STATE_MIB,
     fixed: true,
-    colorClass: 'bg-violet-700',
+    color: FIXED_STATE_COLOR,
   },
   ...systemVolumes.value.map(
     (v, i): Segment => ({
@@ -144,7 +148,7 @@ const segments = computed((): Segment[] => [
       sublabel: formatMiB(parseSizeToMiB(v.maxSize || v.minSize)),
       sizeMiB: parseSizeToMiB(v.maxSize || v.minSize),
       fixed: false,
-      colorClass: USER_COLORS[i % USER_COLORS.length],
+      color: USER_COLORS[i % USER_COLORS.length],
       volume: v,
     }),
   ),
@@ -154,7 +158,7 @@ const segments = computed((): Segment[] => [
     sublabel: diskSizeMiB.value ? formatMiB(ephemeralMiB.value) : 'remaining',
     sizeMiB: ephemeralMiB.value || 1,
     fixed: true,
-    colorClass: 'bg-zinc-600',
+    color: FIXED_EPHEMERAL_COLOR,
   },
 ])
 
@@ -286,13 +290,12 @@ function patchVolume(id: string, patch: Partial<UserVolume>) {
           v-for="seg in segments"
           :key="seg.key"
           :class="[
-            seg.colorClass,
             'flex flex-col items-center justify-center px-1 overflow-hidden transition-all',
             'border-r border-black/25 last:border-r-0',
             !seg.fixed && supported && 'cursor-pointer hover:brightness-110 active:brightness-125',
             !seg.fixed && supported && selectedId === seg.key && 'ring-2 ring-inset ring-white/50',
           ]"
-          :style="{ width: widthPct(seg), minWidth: '28px', flexShrink: '0' }"
+          :style="{ backgroundColor: seg.color, width: widthPct(seg), minWidth: '28px', flexShrink: '0' }"
           :title="seg.fixed ? `${seg.label}: ${seg.sublabel} (fixed)` : `${seg.label}: ${seg.sublabel} — click to edit`"
           @click="selectPartition(seg)"
         >
@@ -308,15 +311,15 @@ function patchVolume(id: string, patch: Partial<UserVolume>) {
       <!-- Legend row -->
       <div class="flex gap-3 mt-1.5 flex-wrap">
         <div class="flex items-center gap-1">
-          <div class="w-2.5 h-2.5 rounded-sm bg-slate-600 flex-shrink-0"></div>
+          <div class="w-2.5 h-2.5 rounded-sm flex-shrink-0" :style="{ backgroundColor: FIXED_SYSTEM_COLOR }"></div>
           <span class="text-xs text-muted">System (EFI + Boot)</span>
         </div>
         <div class="flex items-center gap-1">
-          <div class="w-2.5 h-2.5 rounded-sm bg-violet-700 flex-shrink-0"></div>
+          <div class="w-2.5 h-2.5 rounded-sm flex-shrink-0" :style="{ backgroundColor: FIXED_STATE_COLOR }"></div>
           <span class="text-xs text-muted">STATE</span>
         </div>
         <div class="flex items-center gap-1">
-          <div class="w-2.5 h-2.5 rounded-sm bg-zinc-600 flex-shrink-0"></div>
+          <div class="w-2.5 h-2.5 rounded-sm flex-shrink-0" :style="{ backgroundColor: FIXED_EPHEMERAL_COLOR }"></div>
           <span class="text-xs text-muted">EPHEMERAL (auto)</span>
         </div>
         <div

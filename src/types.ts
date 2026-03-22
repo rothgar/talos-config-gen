@@ -1,5 +1,5 @@
 export type MachineType = 'controlplane' | 'worker'
-export type CNIName = 'flannel' | 'calico' | 'custom' | 'none'
+export type CNIName = 'flannel' | 'custom' | 'none'
 export type ProxyMode = 'iptables' | 'ipvs' | 'nftables'
 
 // Array items carry a _id field for React reconciliation (stripped in YAML output)
@@ -55,6 +55,9 @@ export interface TalosConfig {
       interfaces: NetworkInterface[]
       nameservers: string[]
       searchDomains: string[]
+      kubespan: {
+        enabled: boolean
+      }
     }
     install: {
       disk: string
@@ -73,6 +76,10 @@ export interface TalosConfig {
       stableHostname: boolean
       apidCheckExtKeyUsage: boolean
       diskQuotaSupport: boolean
+      kubePrism: {
+        enabled: boolean
+        port: number
+      }
     }
     env: KVPair[]
     sysctls: KVPair[]

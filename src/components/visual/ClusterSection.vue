@@ -140,10 +140,9 @@ const errorCount = computed(() => {
           id="cni-name"
           class="input-base"
           :value="c.network.cniName"
-          @change="patchCluster({ network: { ...c.network, cniName: ($event.target as HTMLSelectElement).value as 'flannel' | 'calico' | 'custom' | 'none' } })"
+          @change="patchCluster({ network: { ...c.network, cniName: ($event.target as HTMLSelectElement).value as 'flannel' | 'custom' | 'none' } })"
         >
-          <option value="flannel">flannel</option>
-          <option value="calico">calico</option>
+          <option value="flannel">flannel (built-in)</option>
           <option value="custom">custom</option>
           <option value="none">none</option>
         </select>

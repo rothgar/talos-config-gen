@@ -195,6 +195,18 @@ const errorCount = computed(() => {
         placeholder="example.com"
         @update:items="patchMachine({ network: { ...m.network, searchDomains: $event } })"
       />
+      <FormField
+        label="KubeSpan"
+        hint="Enable WireGuard-based encrypted mesh networking between nodes"
+        :inline="true"
+      >
+        <input
+          type="checkbox"
+          class="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+          :checked="m.network.kubespan?.enabled ?? false"
+          @change="patchMachine({ network: { ...m.network, kubespan: { enabled: ($event.target as HTMLInputElement).checked } } })"
+        />
+      </FormField>
     </AppSection>
 
     <!-- Install -->
@@ -341,6 +353,41 @@ const errorCount = computed(() => {
             @change="patchMachine({ features: { ...m.features, apidCheckExtKeyUsage: ($event.target as HTMLInputElement).checked } })"
           />
         </FormField>
+
+        <!-- Version-gated: kubePrism -->
+        <template v-if="version.supportedFeatures.kubePrism">
+          <FormField
+            label="KubePrism"
+            hint="Local load-balancer for the Kubernetes API server (port 7445)"
+            :inline="true"
+          >
+            <input
+              type="checkbox"
+              class="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+              :checked="m.features.kubePrism?.enabled ?? false"
+              @change="patchMachine({ features: { ...m.features, kubePrism: { ...(m.features.kubePrism ?? { port: 7445 }), enabled: ($event.target as HTMLInputElement).checked } } })"
+            />
+          </FormField>
+          <FormField
+            v-if="m.features.kubePrism?.enabled"
+            label="KubePrism Port"
+            html-for="kubeprism-port"
+            hint="Local proxy port (default 7445)"
+          >
+            <input
+              id="kubeprism-port"
+              class="input-base font-mono w-28"
+              type="number"
+              placeholder="7445"
+              :value="m.features.kubePrism?.port ?? 7445"
+              @input="patchMachine({ features: { ...m.features, kubePrism: { enabled: true, port: Number(($event.target as HTMLInputElement).value) || 7445 } } })"
+            />
+          </FormField>
+        </template>
+        <div v-else class="flex items-center gap-2 col-span-1">
+          <span class="text-xs text-muted line-through">KubePrism</span>
+          <span class="badge badge-warning">Requires v1.6+</span>
+        </div>
 
         <!-- Version-gated: diskQuotaSupport -->
         <template v-if="version.supportedFeatures.diskQuotaSupport">

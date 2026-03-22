@@ -15,6 +15,7 @@ export function makeDefaultConfig(v: TalosVersion): TalosConfig {
         interfaces: [],
         nameservers: ['1.1.1.1', '8.8.8.8'],
         searchDomains: [],
+        kubespan: { enabled: false },
       },
       install: {
         disk: '/dev/sda',
@@ -33,6 +34,7 @@ export function makeDefaultConfig(v: TalosVersion): TalosConfig {
         stableHostname: true,
         apidCheckExtKeyUsage: true,
         diskQuotaSupport: true,
+        kubePrism: { enabled: false, port: 7445 },
       },
       env: [],
       sysctls: [],
