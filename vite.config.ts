@@ -1,7 +1,9 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import fs from 'node:fs'
 import path from 'node:path'
+import http from 'node:http'
+import https from 'node:https'
 import yaml from 'js-yaml'
 import type { Connect } from 'vite'
 import type { IncomingMessage, ServerResponse } from 'node:http'
@@ -30,6 +32,58 @@ function generatePatches(): import('vite').Plugin {
   }
 }
 
+/** Fetch via HTTPS proxy tunnel when proxy env vars are set, else use native fetch. */
+function anthropicFetch(urlStr: string, options: { headers: Record<string, string>; body: string }): Promise<{ status: number; headers: Map<string, string>; body: NodeJS.ReadableStream }> {
+  const proxyUrl = process.env.https_proxy || process.env.HTTPS_PROXY
+  return new Promise((resolve, reject) => {
+    const target = new URL(urlStr)
+
+    const respond = (socket: import('node:stream').Duplex | null, agent?: https.Agent) => {
+      const req = https.request(
+        {
+          hostname: target.hostname,
+          port: target.port || 443,
+          path: target.pathname + target.search,
+          method: 'POST',
+          headers: options.headers,
+          agent,
+        },
+        (res) => {
+          const hdrs = new Map<string, string>()
+          for (const [k, v] of Object.entries(res.headers)) {
+            if (typeof v === 'string') hdrs.set(k, v)
+          }
+          resolve({ status: res.statusCode ?? 200, headers: hdrs, body: res })
+        },
+      )
+      req.on('error', reject)
+      req.write(options.body)
+      req.end()
+    }
+
+    if (proxyUrl) {
+      const proxy = new URL(proxyUrl)
+      const connectReq = http.request({
+        hostname: proxy.hostname,
+        port: Number(proxy.port) || 80,
+        method: 'CONNECT',
+        path: `${target.hostname}:443`,
+        headers: proxy.username
+          ? { 'Proxy-Authorization': 'Basic ' + Buffer.from(`${decodeURIComponent(proxy.username)}:${decodeURIComponent(proxy.password)}`).toString('base64') }
+          : {},
+      })
+      connectReq.on('connect', (_res, socket) => {
+        const agent = new https.Agent({ socket } as unknown as https.AgentOptions)
+        respond(socket, agent)
+      })
+      connectReq.on('error', reject)
+      connectReq.end()
+    } else {
+      respond(null)
+    }
+  })
+}
+
 function devAiProxy(): import('vite').Plugin {
   return {
     name: 'dev-ai-proxy',
@@ -51,8 +105,7 @@ function devAiProxy(): import('vite').Plugin {
           req.on('end', async () => {
             try {
               const body = Buffer.concat(chunks).toString()
-              const upstream = await fetch('https://api.anthropic.com/v1/messages', {
-                method: 'POST',
+              const upstream = await anthropicFetch('https://api.anthropic.com/v1/messages', {
                 headers: {
                   'Content-Type': 'application/json',
                   'x-api-key': apiKey,
@@ -61,17 +114,10 @@ function devAiProxy(): import('vite').Plugin {
                 body,
               })
               res.writeHead(upstream.status, {
-                'Content-Type': upstream.headers.get('Content-Type') ?? 'text/event-stream',
+                'Content-Type': upstream.headers.get('content-type') ?? 'text/event-stream',
                 'Cache-Control': 'no-store',
               })
-              const reader = upstream.body!.getReader()
-              const pump = async () => {
-                const { done, value } = await reader.read()
-                if (done) { res.end(); return }
-                res.write(value)
-                await pump()
-              }
-              await pump()
+              upstream.body.pipe(res)
             } catch (err) {
               res.writeHead(500, { 'Content-Type': 'application/json' })
               res.end(JSON.stringify({ error: { message: String(err) } }))
@@ -83,7 +129,13 @@ function devAiProxy(): import('vite').Plugin {
   }
 }
 
-export default defineConfig({
-  plugins: [vue(), generatePatches(), devAiProxy()],
-  base: '/talos-config-gen/',
+export default defineConfig(({ mode }) => {
+  // Load all env vars (including non-VITE_ prefixed) so the dev proxy can use ANTHROPIC_API_KEY
+  const env = loadEnv(mode, process.cwd(), '')
+  Object.assign(process.env, env)
+
+  return {
+    plugins: [vue(), generatePatches(), devAiProxy()],
+    base: '/talos-config-gen/',
+  }
 })
