@@ -176,40 +176,43 @@ const hasMessages = computed(() => messages.value.length > 0)
 <template>
   <div class="flex flex-col h-full">
     <!-- Input area -->
-    <div class="border-b border-border bg-surface px-4 py-3">
-      <div class="max-w-2xl mx-auto flex gap-2 items-end">
+    <div class="border-b border-border bg-surface px-3 py-3 sm:px-4">
+      <div class="max-w-2xl mx-auto flex flex-col gap-2">
         <textarea
           v-model="inputText"
-          rows="2"
+          rows="3"
           placeholder="e.g. controlplane on /dev/sda, endpoint https://192.168.1.10:6443, 3-node HA…"
-          class="input-base text-xs flex-1 resize-none leading-relaxed"
-          style="min-height: 56px; max-height: 200px"
+          class="input-base text-xs w-full resize-none leading-relaxed"
+          style="min-height: 72px; max-height: 200px"
           :disabled="isStreaming"
           @keydown.enter.exact.prevent="sendMessage"
           @keydown.enter.shift.exact.stop
         />
-        <button
-          type="button"
-          class="btn-primary text-xs flex-shrink-0 self-end"
-          :disabled="!inputText.trim() || isStreaming"
-          @click="sendMessage"
-        >
-          <svg v-if="!isStreaming" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-          </svg>
-          <svg v-else class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-        </button>
+        <div class="flex items-center justify-between gap-2">
+          <p class="text-[10px] text-muted leading-snug">
+            Enter to send &middot; Shift+Enter for new line
+          </p>
+          <button
+            type="button"
+            class="btn-primary text-xs flex-shrink-0 flex items-center gap-1.5"
+            :disabled="!inputText.trim() || isStreaming"
+            @click="sendMessage"
+          >
+            <svg v-if="!isStreaming" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+            <svg v-else class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            {{ isStreaming ? 'Sending…' : 'Send' }}
+          </button>
+        </div>
       </div>
-      <p class="text-center text-[10px] text-muted mt-1.5 max-w-2xl mx-auto">
-        Press Enter to send · Shift+Enter for new line · Config is applied directly to the Visual/YAML editors
-      </p>
     </div>
 
     <!-- Messages area -->
-    <div ref="messagesEl" class="flex-1 overflow-y-auto px-4 py-4">
+    <div ref="messagesEl" class="flex-1 overflow-y-auto px-3 py-4 sm:px-4">
       <!-- Empty state hint -->
       <div v-if="!hasMessages" class="max-w-xl mx-auto mt-10 text-center">
         <div class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 mb-3">
