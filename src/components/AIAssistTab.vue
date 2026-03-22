@@ -174,6 +174,39 @@ const hasMessages = computed(() => messages.value.length > 0)
 
 <template>
   <div class="flex flex-col h-full">
+    <!-- Input area -->
+    <div class="border-b border-border bg-surface px-4 py-3">
+      <div class="max-w-2xl mx-auto flex gap-2 items-end">
+        <textarea
+          v-model="inputText"
+          rows="2"
+          placeholder="e.g. controlplane on /dev/sda, endpoint https://192.168.1.10:6443, 3-node HA…"
+          class="input-base text-xs flex-1 resize-none leading-relaxed"
+          style="min-height: 56px; max-height: 200px"
+          :disabled="isStreaming"
+          @keydown.enter.exact.prevent="sendMessage"
+          @keydown.enter.shift.exact.stop
+        />
+        <button
+          type="button"
+          class="btn-primary text-xs flex-shrink-0 self-end"
+          :disabled="!inputText.trim() || isStreaming"
+          @click="sendMessage"
+        >
+          <svg v-if="!isStreaming" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+          </svg>
+          <svg v-else class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+        </button>
+      </div>
+      <p class="text-center text-[10px] text-muted mt-1.5 max-w-2xl mx-auto">
+        Press Enter to send · Shift+Enter for new line · Config is applied directly to the Visual/YAML editors
+      </p>
+    </div>
+
     <!-- Messages area -->
     <div ref="messagesEl" class="flex-1 overflow-y-auto px-4 py-4">
       <!-- Empty state hint -->
@@ -262,37 +295,5 @@ const hasMessages = computed(() => messages.value.length > 0)
       </div>
     </div>
 
-    <!-- Input area -->
-    <div class="border-t border-border bg-surface px-4 py-3">
-      <div class="max-w-2xl mx-auto flex gap-2 items-end">
-        <textarea
-          v-model="inputText"
-          rows="2"
-          placeholder="e.g. controlplane on /dev/sda, endpoint https://192.168.1.10:6443, 3-node HA…"
-          class="input-base text-xs flex-1 resize-none leading-relaxed"
-          style="min-height: 56px; max-height: 200px"
-          :disabled="isStreaming"
-          @keydown.enter.exact.prevent="sendMessage"
-          @keydown.enter.shift.exact.stop
-        />
-        <button
-          type="button"
-          class="btn-primary text-xs flex-shrink-0 self-end"
-          :disabled="!inputText.trim() || isStreaming"
-          @click="sendMessage"
-        >
-          <svg v-if="!isStreaming" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-          </svg>
-          <svg v-else class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-        </button>
-      </div>
-      <p class="text-center text-[10px] text-muted mt-1.5 max-w-2xl mx-auto">
-        Press Enter to send · Shift+Enter for new line · Config is applied directly to the Visual/YAML editors
-      </p>
-    </div>
   </div>
 </template>
