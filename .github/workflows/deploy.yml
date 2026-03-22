@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     # Skip this job when CF credentials are not configured so the workflow
     # still works for contributors / forks that only want the static site.
-    if: ${{ vars.CF_ACCOUNT_ID != '' && secrets.CF_API_TOKEN != '' }}
+    if: ${{ vars.CF_ACCOUNT_ID != '' }}
     outputs:
       worker_url: ${{ steps.deploy.outputs.worker_url }}
     steps:
