@@ -121,6 +121,10 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    # Explicit condition breaks GitHub's chain-skipping behaviour: without this,
+    # deploy is silently skipped whenever deploy-worker is skipped or fails —
+    # even though deploy only directly depends on build.
+    if: ${{ always() && needs.build.result == 'success' }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
