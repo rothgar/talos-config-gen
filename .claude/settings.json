@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "siderolabs-docs": {
+      "type": "sse",
+      "url": "https://docs.siderolabs.com/mcp"
+    }
+  }
+}

@@ -64,7 +64,24 @@ Rules:
    - kube-scheduler: ${props.version.schedulerImage}
    - etcd: ${props.version.etcdImage}
    - coredns: ${props.version.coreDNSImage}
-10. Be concise. Only ask for one missing piece of information at a time.`
+10. Persistent storage / volume mounts (e.g. Longhorn, local-path):
+    - ALWAYS use machine.userVolumes[] — NEVER use machine.disks[].partitions[].mountpoint for this purpose.
+    - machine.disks is only for raw partitioning without mounts; it does NOT create mounted filesystems.
+    - Correct userVolume structure:
+        machine:
+          userVolumes:
+            - name: <name>
+              provisioning:
+                diskSelector:
+                  name: <device>   # or: match: system_disk
+                minSize: <size>Gi
+                maxSize: <size>Gi
+              filesystem:
+                type: xfs          # or ext4
+              mount:
+                path: /var/mnt/<name>
+    - Sizes MUST use Kubernetes quantity notation: Gi (not GB), Mi (not MB).
+11. Be concise. Only ask for one missing piece of information at a time.`
 }
 
 // ---------------------------------------------------------------------------
