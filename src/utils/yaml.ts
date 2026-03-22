@@ -292,9 +292,12 @@ function parseUserVolume(raw: unknown): UserVolume {
 }
 
 export function yamlToConfig(yamlStr: string): { config: TalosConfig; error: null } | { config: null; error: string } {
+  // Strip any additional documents (e.g. UserVolumeConfig appended after ---)
+  // yaml.load() only handles a single document and throws on multi-doc YAML.
+  const firstDoc = yamlStr.replace(/\n---[\s\S]*$/, '')
   let doc: unknown
   try {
-    doc = yaml.load(yamlStr)
+    doc = yaml.load(firstDoc)
   } catch (e) {
     return { config: null, error: String(e) }
   }
