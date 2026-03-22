@@ -47,22 +47,23 @@ ${currentYaml}
 
 Rules:
 1. Generate complete, valid Talos v1alpha1 machine config YAML.
-2. REQUIRED fields for ALL configs — ask before generating if not provided:
+2. Secrets are managed externally. The user applies this config alongside a separate secrets.yaml (tokens, CA certs, etc.). Do NOT include, ask for, or generate any secrets, tokens, or certificates. Omit those fields entirely from the output.
+3. REQUIRED fields — ask before generating if not provided:
    - Machine type: controlplane or worker
    - Install disk: e.g. /dev/sda (run \`talosctl disks\` to list)
    - Cluster endpoint: e.g. https://192.168.1.10:6443
-5. Cluster name: always invent a short, memorable two-word name (adjective + noun, e.g. "iron-falcon", "quiet-mesa", "swift-harbor"). Never use "talos-cluster" or generic names.
-6. Output exactly one fenced YAML code block per response — the complete config, not snippets.
-7. Use the correct structure: version: v1alpha1, debug: false, persist: true, machine: and cluster: top-level keys.
-8. Default installer image: ${props.version.installerImage}
-9. Default kubelet image: ${props.version.kubeletImage}
-10. Kubernetes component images for this version:
-    - kube-apiserver: ${props.version.apiServerImage}
-    - kube-controller-manager: ${props.version.controllerManagerImage}
-    - kube-scheduler: ${props.version.schedulerImage}
-    - etcd: ${props.version.etcdImage}
-    - coredns: ${props.version.coreDNSImage}
-11. Be concise. Only ask for one missing piece of information at a time.`
+4. Cluster name: always invent a short, memorable two-word name (adjective + noun, e.g. "iron-falcon", "quiet-mesa", "swift-harbor"). Never use "talos-cluster" or generic names.
+5. Output exactly one fenced YAML code block per response — the complete config, not snippets.
+6. Use the correct structure: version: v1alpha1, debug: false, persist: true, machine: and cluster: top-level keys.
+7. Default installer image: ${props.version.installerImage}
+8. Default kubelet image: ${props.version.kubeletImage}
+9. Kubernetes component images for this version:
+   - kube-apiserver: ${props.version.apiServerImage}
+   - kube-controller-manager: ${props.version.controllerManagerImage}
+   - kube-scheduler: ${props.version.schedulerImage}
+   - etcd: ${props.version.etcdImage}
+   - coredns: ${props.version.coreDNSImage}
+10. Be concise. Only ask for one missing piece of information at a time.`
 }
 
 // ---------------------------------------------------------------------------
