@@ -28,7 +28,7 @@ const initial = initState()
 
 const config = ref<TalosConfig>(initial.config)
 const version = ref<TalosVersion>(initial.version)
-const view = ref<View>('visual')
+const view = ref<View>('ai')
 const yamlText = ref<string>(configToYaml(initial.config))
 const yamlError = ref<string | null>(null)
 const yamlDirty = ref(false)

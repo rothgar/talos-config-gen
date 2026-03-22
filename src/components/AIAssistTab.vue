@@ -212,17 +212,34 @@ function renderContent(content: string): { type: 'text' | 'yaml'; value: string 
 }
 
 // ---------------------------------------------------------------------------
-// Starter prompts
+// Required-fields setup form (shown before the first message)
 // ---------------------------------------------------------------------------
-const starters = [
-  'Generate a controlplane config for a single-node cluster',
-  'Help me set up a 3-node cluster with static IPs',
-  'Create a worker node config for my existing cluster',
-  'Generate a config with custom disk partitioning',
-]
+interface SetupForm {
+  type: 'controlplane' | 'worker'
+  disk: string
+  endpoint: string // controlplane endpoint — only required for controlplane
+  extra: string    // optional free-text for additional context
+}
 
-function useStarter(s: string) {
-  inputText.value = s
+const setupForm = ref<SetupForm>({
+  type: 'controlplane',
+  disk: '',
+  endpoint: '',
+  extra: '',
+})
+
+function submitSetupForm() {
+  const f = setupForm.value
+  const parts: string[] = [
+    `Generate a ${f.type} node config.`,
+    `Install disk: ${f.disk || '/dev/sda'}.`,
+  ]
+  if (f.type === 'controlplane') {
+    parts.push(`Cluster endpoint: ${f.endpoint || 'https://192.168.1.10:6443'}.`)
+  }
+  if (f.extra.trim()) parts.push(f.extra.trim())
+  inputText.value = parts.join(' ')
+  sendMessage()
 }
 
 const hasMessages = computed(() => messages.value.length > 0)
@@ -300,30 +317,90 @@ const hasMessages = computed(() => messages.value.length > 0)
 
     <!-- Messages area -->
     <div ref="messagesEl" class="flex-1 overflow-y-auto px-4 py-4">
-      <!-- Starter prompts when empty -->
-      <div v-if="!hasMessages" class="max-w-2xl mx-auto">
-        <div class="text-center mb-8 mt-4">
-          <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 mb-3">
-            <svg class="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+      <!-- Setup form when no messages yet -->
+      <div v-if="!hasMessages" class="max-w-xl mx-auto mt-6">
+        <div class="text-center mb-5">
+          <div class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 mb-2">
+            <svg class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
             </svg>
           </div>
-          <h2 class="text-sm font-semibold text-text mb-1">AI Config Assistant</h2>
-          <p class="text-xs text-muted">
-            Describe what you want and Claude will generate a complete Talos config.<br />
-            It will ask for required fields like install disk and cluster endpoint.
-          </p>
+          <h2 class="text-sm font-semibold text-text mb-1">Natural Language Config</h2>
+          <p class="text-xs text-muted">Fill in the required fields and Claude will generate a complete Talos config.</p>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <!-- Required fields form -->
+        <div class="rounded-xl border border-border bg-surface-2 p-5 space-y-4">
+
+          <!-- Node type -->
+          <div>
+            <label class="block text-xs font-medium text-text mb-1.5">Node type <span class="text-red-400">*</span></label>
+            <div class="flex gap-2">
+              <button
+                type="button"
+                class="flex-1 py-2 px-3 rounded-lg border text-xs font-medium transition-colors"
+                :class="setupForm.type === 'controlplane'
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border bg-surface text-muted hover:text-text hover:border-border-hover'"
+                @click="setupForm.type = 'controlplane'"
+              >
+                Controlplane
+              </button>
+              <button
+                type="button"
+                class="flex-1 py-2 px-3 rounded-lg border text-xs font-medium transition-colors"
+                :class="setupForm.type === 'worker'
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border bg-surface text-muted hover:text-text hover:border-border-hover'"
+                @click="setupForm.type = 'worker'"
+              >
+                Worker
+              </button>
+            </div>
+          </div>
+
+          <!-- Install disk -->
+          <div>
+            <label class="block text-xs font-medium text-text mb-1">Install disk <span class="text-red-400">*</span></label>
+            <input
+              v-model="setupForm.disk"
+              type="text"
+              placeholder="/dev/sda"
+              class="input-base text-xs w-full font-mono"
+            />
+            <p class="text-[10px] text-muted mt-1">The disk Talos will install to. Run <code class="font-mono">talosctl disks</code> to list available disks.</p>
+          </div>
+
+          <!-- Cluster endpoint (controlplane only) -->
+          <div v-if="setupForm.type === 'controlplane'">
+            <label class="block text-xs font-medium text-text mb-1">Cluster endpoint <span class="text-red-400">*</span></label>
+            <input
+              v-model="setupForm.endpoint"
+              type="text"
+              placeholder="https://192.168.1.10:6443"
+              class="input-base text-xs w-full font-mono"
+            />
+            <p class="text-[10px] text-muted mt-1">The VIP or load-balancer address the API server will be reachable at.</p>
+          </div>
+
+          <!-- Optional extra context -->
+          <div>
+            <label class="block text-xs font-medium text-text mb-1">Additional requirements <span class="text-muted font-normal">(optional)</span></label>
+            <textarea
+              v-model="setupForm.extra"
+              rows="2"
+              placeholder="e.g. static IP 192.168.1.10, 3-node HA cluster, custom DNS, extra disks for Ceph…"
+              class="input-base text-xs w-full resize-none leading-relaxed"
+            />
+          </div>
+
           <button
-            v-for="s in starters"
-            :key="s"
             type="button"
-            class="text-left px-3 py-2.5 rounded-lg border border-border bg-surface-2 hover:border-primary/50 hover:bg-primary/5 text-xs text-text transition-colors"
-            @click="useStarter(s)"
+            class="btn-primary text-xs w-full py-2"
+            :disabled="!setupForm.disk.trim() || (setupForm.type === 'controlplane' && !setupForm.endpoint.trim()) || isStreaming || !canSend"
+            @click="submitSetupForm"
           >
-            {{ s }}
+            Generate Config
           </button>
         </div>
       </div>
