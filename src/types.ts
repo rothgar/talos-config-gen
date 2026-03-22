@@ -130,4 +130,4 @@ export interface TalosConfig {
   }
 }
 
-export type View = 'visual' | 'yaml'
+export type View = 'ai' | 'visual' | 'yaml'

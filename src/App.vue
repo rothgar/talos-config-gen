@@ -9,6 +9,7 @@ import { validateConfig, ValidationError } from './utils/validation'
 import AppHeader from './components/AppHeader.vue'
 import VisualEditor from './components/VisualEditor.vue'
 import YamlEditor from './components/YamlEditor.vue'
+import AIAssistTab from './components/AIAssistTab.vue'
 
 // ---------------------------------------------------------------------------
 // Initialise from URL or defaults
@@ -131,7 +132,15 @@ const currentYaml = computed(() =>
     />
 
     <main class="flex-1 overflow-hidden">
-      <div v-if="view === 'visual'" class="h-[calc(100vh-88px)] overflow-y-auto">
+      <div v-if="view === 'ai'" class="h-[calc(100vh-88px)] flex flex-col">
+        <AIAssistTab
+          :config="config"
+          :version="version"
+          @update:config="handleConfigChange"
+        />
+      </div>
+
+      <div v-else-if="view === 'visual'" class="h-[calc(100vh-88px)] overflow-y-auto">
         <VisualEditor
           :config="config"
           :version="version"

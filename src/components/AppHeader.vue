@@ -142,31 +142,55 @@ function handleVersionChange(ev: Event) {
 
     <!-- Tab bar -->
     <div class="flex px-4">
+      <!-- AI tab -->
       <button
-        v-for="tab in ([{ id: 'visual', label: 'Visual Config' }, { id: 'yaml', label: 'YAML' }] as const)"
-        :key="tab.id"
         type="button"
         class="flex items-center gap-1.5 px-4 py-2 text-xs font-medium border-b-2 transition-colors"
         :class="
-          view === tab.id
+          view === 'ai'
             ? 'border-primary text-primary'
             : 'border-transparent text-muted hover:text-text'
         "
-        @click="emit('view-change', tab.id)"
+        @click="emit('view-change', 'ai')"
       >
-        <!-- Visual icon -->
-        <template v-if="tab.id === 'visual'">
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
-          </svg>
-        </template>
-        <!-- YAML icon -->
-        <template v-else>
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-          </svg>
-        </template>
-        {{ tab.label }}
+        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+        </svg>
+        AI Assist
+      </button>
+
+      <!-- Visual tab -->
+      <button
+        type="button"
+        class="flex items-center gap-1.5 px-4 py-2 text-xs font-medium border-b-2 transition-colors"
+        :class="
+          view === 'visual'
+            ? 'border-primary text-primary'
+            : 'border-transparent text-muted hover:text-text'
+        "
+        @click="emit('view-change', 'visual')"
+      >
+        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+        </svg>
+        Visual Config
+      </button>
+
+      <!-- YAML tab -->
+      <button
+        type="button"
+        class="flex items-center gap-1.5 px-4 py-2 text-xs font-medium border-b-2 transition-colors"
+        :class="
+          view === 'yaml'
+            ? 'border-primary text-primary'
+            : 'border-transparent text-muted hover:text-text'
+        "
+        @click="emit('view-change', 'yaml')"
+      >
+        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+        </svg>
+        YAML
       </button>
     </div>
   </header>
