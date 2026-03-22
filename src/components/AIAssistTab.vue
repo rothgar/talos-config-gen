@@ -14,11 +14,22 @@ const emit = defineEmits<{
 }>()
 
 // ---------------------------------------------------------------------------
-// API key management
+// Proxy vs direct-API mode
+//
+// VITE_AI_PROXY_URL is injected at build time by the GitHub Actions workflow
+// when a Cloudflare Worker has been deployed. When set the browser sends
+// requests to the worker (which holds the Anthropic key server-side).
+// When not set the user must supply their own Anthropic API key.
+// ---------------------------------------------------------------------------
+const PROXY_URL: string = import.meta.env.VITE_AI_PROXY_URL ?? ''
+const usingProxy = PROXY_URL.length > 0
+
+// ---------------------------------------------------------------------------
+// User API key (only needed when not using the proxy)
 // ---------------------------------------------------------------------------
 const STORAGE_KEY = 'talos-ai-api-key'
 const apiKey = ref<string>(localStorage.getItem(STORAGE_KEY) ?? '')
-const showApiKeyInput = ref<boolean>(!apiKey.value)
+const showApiKeyInput = ref<boolean>(!usingProxy && !apiKey.value)
 
 function saveApiKey() {
   localStorage.setItem(STORAGE_KEY, apiKey.value)
@@ -30,6 +41,9 @@ function clearApiKey() {
   localStorage.removeItem(STORAGE_KEY)
   showApiKeyInput.value = true
 }
+
+// True when the tab is ready to send messages
+const canSend = computed(() => usingProxy || apiKey.value.length > 0)
 
 // ---------------------------------------------------------------------------
 // Chat state
@@ -77,12 +91,12 @@ Your job:
 }
 
 // ---------------------------------------------------------------------------
-// Streaming fetch
+// Streaming fetch — routes to proxy or Anthropic directly
 // ---------------------------------------------------------------------------
 async function sendMessage() {
   const text = inputText.value.trim()
   if (!text || isStreaming.value) return
-  if (!apiKey.value) {
+  if (!canSend.value) {
     showApiKeyInput.value = true
     return
   }
@@ -92,10 +106,8 @@ async function sendMessage() {
   inputText.value = ''
   await scrollToBottom()
 
-  // Add empty assistant message we'll stream into
   messages.value.push({ role: 'assistant', content: '' })
   const idx = messages.value.length - 1
-
   isStreaming.value = true
 
   try {
@@ -103,27 +115,28 @@ async function sendMessage() {
       model: 'claude-opus-4-6',
       max_tokens: 4096,
       system: buildSystemPrompt(),
+      stream: true,
       messages: messages.value
-        .slice(0, -1) // exclude the empty assistant placeholder
+        .slice(0, -1)
         .map((m) => ({ role: m.role, content: m.content })),
     }
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey.value,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({ ...body, stream: true }),
-    })
+    // Build request based on mode
+    const url = usingProxy ? PROXY_URL : 'https://api.anthropic.com/v1/messages'
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    if (usingProxy) {
+      // No auth header — the worker injects the Anthropic key server-side
+    } else {
+      headers['x-api-key'] = apiKey.value
+      headers['anthropic-version'] = '2023-06-01'
+      headers['anthropic-dangerous-direct-browser-access'] = 'true'
+    }
+
+    const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) })
 
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}))
-      throw new Error(
-        (errData as any)?.error?.message ?? `HTTP ${response.status}`,
-      )
+      throw new Error((errData as any)?.error?.message ?? `HTTP ${response.status}`)
     }
 
     const reader = response.body!.getReader()
@@ -143,15 +156,12 @@ async function sendMessage() {
         if (data === '[DONE]') break
         try {
           const evt = JSON.parse(data)
-          if (
-            evt.type === 'content_block_delta' &&
-            evt.delta?.type === 'text_delta'
-          ) {
+          if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
             messages.value[idx].content += evt.delta.text
             await scrollToBottom()
           }
         } catch {
-          // ignore parse errors for SSE lines
+          // ignore SSE parse errors
         }
       }
     }
@@ -220,8 +230,26 @@ const hasMessages = computed(() => messages.value.length > 0)
 
 <template>
   <div class="flex flex-col h-full">
-    <!-- API key banner -->
-    <div v-if="showApiKeyInput" class="border-b border-border bg-surface-2 px-4 py-3">
+    <!-- Proxy mode banner -->
+    <div v-if="usingProxy" class="border-b border-border bg-surface-2 px-4 py-1.5 flex items-center justify-between">
+      <span class="text-xs text-muted">
+        <span class="text-green font-medium">●</span>
+        AI powered by the project — limited to Talos config generation · 20 req/hour
+      </span>
+      <button
+        type="button"
+        class="text-xs text-muted hover:text-text transition-colors"
+        @click="showApiKeyInput = !showApiKeyInput"
+      >
+        Use your own key
+      </button>
+    </div>
+
+    <!-- User API key entry (direct mode, or override in proxy mode) -->
+    <div
+      v-if="showApiKeyInput"
+      class="border-b border-border bg-surface-2 px-4 py-3"
+    >
       <div class="max-w-2xl mx-auto">
         <p class="text-xs text-muted mb-2">
           Enter your
@@ -231,7 +259,8 @@ const hasMessages = computed(() => messages.value.length > 0)
             rel="noopener"
             class="text-blue underline"
           >Anthropic API key</a>
-          to use AI assistance. It is stored only in your browser's localStorage.
+          to use AI assistance directly. Stored only in your browser's localStorage.
+          <template v-if="usingProxy"> Overrides the shared proxy key.</template>
         </p>
         <div class="flex gap-2">
           <input
@@ -249,14 +278,20 @@ const hasMessages = computed(() => messages.value.length > 0)
           >
             Save
           </button>
+          <button v-if="usingProxy" type="button" class="btn-secondary text-xs" @click="showApiKeyInput = false">
+            Cancel
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- API key indicator when hidden -->
-    <div v-else class="border-b border-border bg-surface-2 px-4 py-1.5 flex items-center justify-between">
+    <!-- Direct mode: key configured indicator -->
+    <div
+      v-else-if="!usingProxy"
+      class="border-b border-border bg-surface-2 px-4 py-1.5 flex items-center justify-between"
+    >
       <span class="text-xs text-muted">
-        <span class="text-green font-medium">●</span> API key configured
+        <span class="text-green font-medium">●</span> Using your API key
       </span>
       <button type="button" class="text-xs text-muted hover:text-text transition-colors" @click="clearApiKey">
         Change key
@@ -379,7 +414,7 @@ const hasMessages = computed(() => messages.value.length > 0)
         <button
           type="button"
           class="btn-primary text-xs flex-shrink-0 self-end"
-          :disabled="!inputText.trim() || isStreaming || !apiKey"
+          :disabled="!inputText.trim() || isStreaming || !canSend"
           @click="sendMessage"
         >
           <svg v-if="!isStreaming" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

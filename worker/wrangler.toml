@@ -1,0 +1,17 @@
+name = "talos-ai-proxy"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+
+# ---------------------------------------------------------------------------
+# Secrets — set these via GitHub Actions (see deploy.yml):
+#
+#   ANTHROPIC_API_KEY   your Anthropic key
+#
+# Optional variable — set via GitHub Actions variable PAGES_ORIGIN to restrict
+# CORS to your GitHub Pages domain (e.g. https://you.github.io).
+# Leave unset to allow all origins (less secure but easier for local dev).
+# ---------------------------------------------------------------------------
+
+# [vars] — uncomment and set if you want to hardcode the allowed origin:
+# [vars]
+# ALLOWED_ORIGIN = "https://your-username.github.io"
