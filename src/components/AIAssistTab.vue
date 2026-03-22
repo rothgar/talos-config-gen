@@ -50,15 +50,7 @@ Rules:
 2. REQUIRED fields for ALL configs — ask before generating if not provided:
    - Machine type: controlplane or worker
    - Install disk: e.g. /dev/sda (run \`talosctl disks\` to list)
-3. REQUIRED fields for controlplane configs — ask before generating if not provided:
    - Cluster endpoint: e.g. https://192.168.1.10:6443
-4. REQUIRED fields for worker configs joining an existing cluster — ask before generating if not provided:
-   - Cluster endpoint: e.g. https://192.168.1.10:6443
-   - Cluster CA certificate (PEM): the \`cluster.ca.crt\` value from the controlplane config
-   - Machine token: the \`machine.token\` value from the controlplane config
-   - Cluster token: the \`cluster.token\` value from the controlplane config
-   If the user does not have these, tell them to run: \`talosctl get mc -o yaml\` on their controlplane to extract them, or to share the secrets bundle from their original \`talosctl gen config\` output.
-   NEVER generate placeholder or fake certificate/token values — always ask the user to provide the real ones.
 5. Cluster name: always invent a short, memorable two-word name (adjective + noun, e.g. "iron-falcon", "quiet-mesa", "swift-harbor"). Never use "talos-cluster" or generic names.
 6. Output exactly one fenced YAML code block per response — the complete config, not snippets.
 7. Use the correct structure: version: v1alpha1, debug: false, persist: true, machine: and cluster: top-level keys.
@@ -241,8 +233,6 @@ const hasMessages = computed(() => messages.value.length > 0)
           Include your <span class="text-text font-medium">install disk</span> (e.g. <code class="font-mono">/dev/sda</code>)
           and <span class="text-text font-medium">cluster endpoint</span> (e.g. <code class="font-mono">https://192.168.1.10:6443</code>)
           and a config will be generated straight away.<br />
-          For <span class="text-text font-medium">worker nodes</span> joining an existing cluster, you'll also need the
-          CA certificate and tokens from your controlplane config.<br />
           If anything is missing, the AI will ask before generating.
         </p>
       </div>
