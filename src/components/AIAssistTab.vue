@@ -28,6 +28,7 @@ interface Message {
 const messages = ref<Message[]>([])
 const inputText = ref('')
 const isStreaming = ref(false)
+const lastAppliedIdx = ref<number | null>(null)
 const messagesEl = ref<HTMLElement | null>(null)
 
 // ---------------------------------------------------------------------------
@@ -46,22 +47,30 @@ ${currentYaml}
 
 Rules:
 1. Generate complete, valid Talos v1alpha1 machine config YAML.
-2. REQUIRED fields — if the user has not provided them, ask before generating:
+2. REQUIRED fields for ALL configs — ask before generating if not provided:
    - Machine type: controlplane or worker
    - Install disk: e.g. /dev/sda (run \`talosctl disks\` to list)
-   - Cluster endpoint (controlplane only): e.g. https://192.168.1.10:6443
-3. Cluster name: always invent a short, memorable two-word name (adjective + noun, e.g. "iron-falcon", "quiet-mesa", "swift-harbor"). Never use "talos-cluster" or generic names.
-4. Output exactly one fenced YAML code block per response — the complete config, not snippets.
-5. Use the correct structure: version: v1alpha1, debug: false, persist: true, machine: and cluster: top-level keys.
-6. Default installer image: ${props.version.installerImage}
-7. Default kubelet image: ${props.version.kubeletImage}
-8. Kubernetes component images for this version:
-   - kube-apiserver: ${props.version.apiServerImage}
-   - kube-controller-manager: ${props.version.controllerManagerImage}
-   - kube-scheduler: ${props.version.schedulerImage}
-   - etcd: ${props.version.etcdImage}
-   - coredns: ${props.version.coreDNSImage}
-9. Be concise. Only ask for one missing piece of information at a time.`
+3. REQUIRED fields for controlplane configs — ask before generating if not provided:
+   - Cluster endpoint: e.g. https://192.168.1.10:6443
+4. REQUIRED fields for worker configs joining an existing cluster — ask before generating if not provided:
+   - Cluster endpoint: e.g. https://192.168.1.10:6443
+   - Cluster CA certificate (PEM): the \`cluster.ca.crt\` value from the controlplane config
+   - Machine token: the \`machine.token\` value from the controlplane config
+   - Cluster token: the \`cluster.token\` value from the controlplane config
+   If the user does not have these, tell them to run: \`talosctl get mc -o yaml\` on their controlplane to extract them, or to share the secrets bundle from their original \`talosctl gen config\` output.
+   NEVER generate placeholder or fake certificate/token values — always ask the user to provide the real ones.
+5. Cluster name: always invent a short, memorable two-word name (adjective + noun, e.g. "iron-falcon", "quiet-mesa", "swift-harbor"). Never use "talos-cluster" or generic names.
+6. Output exactly one fenced YAML code block per response — the complete config, not snippets.
+7. Use the correct structure: version: v1alpha1, debug: false, persist: true, machine: and cluster: top-level keys.
+8. Default installer image: ${props.version.installerImage}
+9. Default kubelet image: ${props.version.kubeletImage}
+10. Kubernetes component images for this version:
+    - kube-apiserver: ${props.version.apiServerImage}
+    - kube-controller-manager: ${props.version.controllerManagerImage}
+    - kube-scheduler: ${props.version.schedulerImage}
+    - etcd: ${props.version.etcdImage}
+    - coredns: ${props.version.coreDNSImage}
+11. Be concise. Only ask for one missing piece of information at a time.`
 }
 
 // ---------------------------------------------------------------------------
@@ -129,6 +138,13 @@ async function sendMessage() {
     messages.value[idx].content = `⚠️ Error: ${e.message}`
   } finally {
     isStreaming.value = false
+    // Auto-apply the last YAML block from the completed response
+    const finalContent = messages.value[idx].content
+    const yamlMatch = [...finalContent.matchAll(/```ya?ml\n([\s\S]*?)```/g)].pop()
+    if (yamlMatch) {
+      applyYaml(yamlMatch[1].trim())
+      lastAppliedIdx.value = idx
+    }
   }
 }
 
@@ -225,7 +241,9 @@ const hasMessages = computed(() => messages.value.length > 0)
           Include your <span class="text-text font-medium">install disk</span> (e.g. <code class="font-mono">/dev/sda</code>)
           and <span class="text-text font-medium">cluster endpoint</span> (e.g. <code class="font-mono">https://192.168.1.10:6443</code>)
           and a config will be generated straight away.<br />
-          If you leave them out, the AI will ask.
+          For <span class="text-text font-medium">worker nodes</span> joining an existing cluster, you'll also need the
+          CA certificate and tokens from your controlplane config.<br />
+          If anything is missing, the AI will ask before generating.
         </p>
       </div>
 
@@ -280,7 +298,16 @@ const hasMessages = computed(() => messages.value.length > 0)
                     <div v-else class="rounded-lg overflow-hidden border border-border/60">
                       <div class="flex items-center justify-between bg-surface px-3 py-1.5 border-b border-border/60">
                         <span class="text-[10px] font-mono text-muted uppercase tracking-wide">yaml</span>
+                        <template v-if="lastAppliedIdx === i">
+                          <span class="text-[10px] text-green-500 flex items-center gap-1">
+                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                            Applied to Visual &amp; YAML tabs
+                          </span>
+                        </template>
                         <button
+                          v-else
                           type="button"
                           class="btn-primary text-[10px] py-0.5 px-2"
                           @click="applyYaml(part.value)"
