@@ -20,11 +20,14 @@ concurrency:
 # Required GitHub Secrets (Settings → Secrets and variables → Actions → Secrets):
 #
 #   CF_API_TOKEN        Cloudflare API token — Scope: Account / Workers Scripts:Edit
+#   CF_ACCOUNT_ID       Cloudflare Account ID  ← must also be added as a Variable (see below)
 #   ANTHROPIC_API_KEY   Your Anthropic API key
 #
-# CF_ACCOUNT_ID can be stored as either a Secret or a Variable:
-#   As a Secret:   Settings → Secrets and variables → Actions → Secrets → CF_ACCOUNT_ID
-#   As a Variable: Settings → Secrets and variables → Actions → Variables → CF_ACCOUNT_ID
+# Required GitHub Variables (Settings → Secrets and variables → Actions → Variables):
+#
+#   CF_ACCOUNT_ID       Cloudflare Account ID — GitHub Actions cannot read secrets in
+#                       job-level `if` conditions, so this value must be set here too.
+#                       The actual deploy uses the secret if both are present.
 #
 # Optional GitHub Variables:
 #
@@ -39,10 +42,10 @@ jobs:
   # ---------------------------------------------------------------------------
   deploy-worker:
     runs-on: ubuntu-latest
-    # Skip this job when CF credentials are not configured so the workflow
-    # still works for contributors / forks that only want the static site.
-    # CF_ACCOUNT_ID can be stored as a Variable or a Secret.
-    if: ${{ vars.CF_ACCOUNT_ID != '' || secrets.CF_ACCOUNT_ID != '' }}
+    # GitHub Actions does not allow `secrets` context in job-level `if` conditions,
+    # so CF_ACCOUNT_ID must be set as a Variable to trigger this job.
+    # The deploy step below still falls back to the secret value if available.
+    if: ${{ vars.CF_ACCOUNT_ID != '' }}
     outputs:
       worker_url: ${{ steps.deploy.outputs.worker_url }}
     steps:
