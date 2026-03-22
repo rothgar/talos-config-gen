@@ -167,6 +167,17 @@ const errorCount = computed(() => {
         </div>
       </div>
 
+      <!-- Partition layout (version-gated) -->
+      <div class="pt-3 mt-1 border-t border-border/50">
+        <DiskPartitionEditor
+          :install-disk="m.install.disk"
+          :disks="hardware.disks"
+          :user-volumes="m.userVolumes"
+          :supported="version.supportedFeatures.userVolumes"
+          @update:user-volumes="patchMachine({ userVolumes: $event })"
+        />
+      </div>
+
       <!-- Network interfaces summary -->
       <div class="pt-3 mt-1 border-t border-border/50 flex items-center justify-between">
         <span class="text-xs text-muted">Network Interfaces</span>
@@ -272,17 +283,6 @@ const errorCount = computed(() => {
         placeholder="console=ttyS0"
         @update:items="patchMachine({ install: { ...m.install, extraKernelArgs: $event } })"
       />
-
-      <!-- Partition layout editor (version-gated) -->
-      <div class="pt-3 mt-1 border-t border-border/50">
-        <DiskPartitionEditor
-          :install-disk="m.install.disk"
-          :disks="hardware.disks"
-          :user-volumes="m.userVolumes"
-          :supported="version.supportedFeatures.userVolumes"
-          @update:user-volumes="patchMachine({ userVolumes: $event })"
-        />
-      </div>
     </AppSection>
 
     <!-- Kubelet -->

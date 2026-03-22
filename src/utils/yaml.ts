@@ -378,7 +378,7 @@ export function yamlToConfig(yamlStr: string): { config: TalosConfig; error: nul
         image: toStr(cApi.image),
         certSANs: toStrArray(cApi.certSANs),
         extraArgs: recordToKV(cApi.extraArgs),
-        disablePodSecurityPolicy: toBool(cApi.disablePodSecurityPolicy, true),
+        disablePodSecurityPolicy: toBool(cApi.disablePodSecurityPolicy, false),
       },
       controllerManager: {
         image: toStr(cCM.image),

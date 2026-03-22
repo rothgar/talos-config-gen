@@ -34,7 +34,7 @@ export function makeDefaultConfig(v: TalosVersion): TalosConfig {
         stableHostname: true,
         apidCheckExtKeyUsage: true,
         diskQuotaSupport: true,
-        kubePrism: { enabled: false, port: 7445 },
+        kubePrism: { enabled: v.supportedFeatures.kubePrism, port: 7445 },
       },
       env: [],
       sysctls: [],
@@ -59,7 +59,7 @@ export function makeDefaultConfig(v: TalosVersion): TalosConfig {
         image: v.apiServerImage,
         certSANs: [],
         extraArgs: [],
-        disablePodSecurityPolicy: true,
+        disablePodSecurityPolicy: false,
       },
       controllerManager: {
         image: v.controllerManagerImage,
@@ -90,6 +90,14 @@ export function makeDefaultConfig(v: TalosVersion): TalosConfig {
 }
 
 export function updateConfigForVersion(config: TalosConfig, v: TalosVersion): TalosConfig {
+  const currentKubePrismEnabled = config.machine.features.kubePrism?.enabled ?? false
+  // If the new version doesn't support KubePrism, force-disable it.
+  // If the new version does support it and it was off only because the previous version
+  // didn't support it (i.e. enabled===false and old version had kubePrism===false), enable it.
+  const kubePrismEnabled = !v.supportedFeatures.kubePrism
+    ? false
+    : currentKubePrismEnabled
+
   return {
     ...config,
     machine: {
@@ -101,6 +109,13 @@ export function updateConfigForVersion(config: TalosConfig, v: TalosVersion): Ta
       kubelet: {
         ...config.machine.kubelet,
         image: v.kubeletImage,
+      },
+      features: {
+        ...config.machine.features,
+        kubePrism: {
+          enabled: kubePrismEnabled,
+          port: config.machine.features.kubePrism?.port ?? 7445,
+        },
       },
     },
     cluster: {
