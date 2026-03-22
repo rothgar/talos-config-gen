@@ -26,6 +26,12 @@ export interface KVPair {
   value: string
 }
 
+export interface HardDisk {
+  _id: string
+  name: string  // e.g. '/dev/sda'
+  size: number  // GiB
+}
+
 export interface UserVolume {
   _id: string
   name: string
@@ -33,11 +39,17 @@ export interface UserVolume {
   maxSize: string
   diskSelectorSize: string
   diskSelectorName: string
+  diskSelectorMatch: string  // e.g. 'system_disk' (UI marker) or CEL expression
+  mountPath: string
+  filesystemType: string     // 'xfs' | 'ext4' | 'vfat' | ''
 }
 
 export interface TalosConfig {
   machine: {
     type: MachineType
+    hardware?: {
+      disks: HardDisk[]
+    }
     network: {
       hostname: string
       interfaces: NetworkInterface[]

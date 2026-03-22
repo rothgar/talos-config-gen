@@ -35,16 +35,24 @@ function interfaceToDoc(iface: NetworkInterface) {
   return doc
 }
 
-function userVolumeToDoc(v: UserVolume) {
+function userVolumeToDoc(v: UserVolume, installDisk?: string) {
   const doc: Record<string, unknown> = { name: v.name }
   const prov: Record<string, unknown> = {}
   const sel: Record<string, string> = {}
-  if (v.diskSelectorSize) sel.size = v.diskSelectorSize
-  if (v.diskSelectorName) sel.name = v.diskSelectorName
+  // 'system_disk' is a UI marker meaning "use the install disk"
+  if (v.diskSelectorMatch === 'system_disk') {
+    sel.name = installDisk || '/dev/sda'
+  } else {
+    if (v.diskSelectorMatch) sel.match = v.diskSelectorMatch
+    if (v.diskSelectorSize) sel.size = v.diskSelectorSize
+    if (v.diskSelectorName) sel.name = v.diskSelectorName
+  }
   if (Object.keys(sel).length > 0) prov.diskSelector = sel
   if (v.minSize) prov.minSize = v.minSize
   if (v.maxSize) prov.maxSize = v.maxSize
   if (Object.keys(prov).length > 0) doc.provisioning = prov
+  if (v.filesystemType) doc.filesystem = { type: v.filesystemType }
+  if (v.mountPath) doc.mount = { path: v.mountPath }
   return doc
 }
 
@@ -100,7 +108,7 @@ export function configToDoc(config: TalosConfig) {
   const sysctlRecord = kvPairsToRecord(m.sysctls)
   if (sysctlRecord) machineDoc.sysctls = sysctlRecord
   const vols = m.userVolumes.filter((v) => v.name)
-  if (vols.length > 0) machineDoc.userVolumes = vols.map(userVolumeToDoc)
+  if (vols.length > 0) machineDoc.userVolumes = vols.map((v) => userVolumeToDoc(v, m.install.disk))
 
   // Cluster network
   const cni: Record<string, unknown> = { name: c.network.cniName }
@@ -264,6 +272,8 @@ function parseUserVolume(raw: unknown): UserVolume {
   const r = (raw ?? {}) as Record<string, unknown>
   const prov = (r.provisioning ?? {}) as Record<string, unknown>
   const sel = (prov.diskSelector ?? {}) as Record<string, unknown>
+  const fs = (r.filesystem ?? {}) as Record<string, unknown>
+  const mount = (r.mount ?? {}) as Record<string, unknown>
   return {
     _id: nextId(),
     name: toStr(r.name),
@@ -271,6 +281,9 @@ function parseUserVolume(raw: unknown): UserVolume {
     maxSize: toStr(prov.maxSize),
     diskSelectorSize: toStr(sel.size),
     diskSelectorName: toStr(sel.name),
+    diskSelectorMatch: toStr(sel.match),
+    mountPath: toStr(mount.path),
+    filesystemType: toStr(fs.type),
   }
 }
 
@@ -338,6 +351,7 @@ export function yamlToConfig(yamlStr: string): { config: TalosConfig; error: nul
       userVolumes: Array.isArray(m.userVolumes)
         ? m.userVolumes.map(parseUserVolume)
         : [],
+      hardware: { disks: [] },
     },
     cluster: {
       clusterName: toStr(c.clusterName, 'talos-cluster'),

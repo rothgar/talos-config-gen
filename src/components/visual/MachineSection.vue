@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { computed, inject } from 'vue'
-import { TalosConfig } from '../../types'
+import { TalosConfig, HardDisk } from '../../types'
 import { TalosVersion } from '../../versions'
 import { ValidationError } from '../../utils/validation'
+import { nextId } from '../../defaults'
 import AppSection from '../AppSection.vue'
 import FormField from '../FormField.vue'
 import KeyValueEditor from '../KeyValueEditor.vue'
 import ListEditor from '../ListEditor.vue'
 import InterfaceEditor from './InterfaceEditor.vue'
-import UserVolumeEditor from './UserVolumeEditor.vue'
+import DiskPartitionEditor from './DiskPartitionEditor.vue'
 
 const props = defineProps<{
   config: TalosConfig
@@ -24,7 +25,6 @@ function fieldError(path: string): ValidationError | undefined {
   return errorsMap?.value?.[path]
 }
 
-// Helpers to produce item-level errors from the map for list/interface fields
 function nsErrors(): Record<number, string> {
   const out: Record<number, string> = {}
   props.config.machine.network.nameservers.forEach((_, i) => {
@@ -35,9 +35,29 @@ function nsErrors(): Record<number, string> {
 }
 
 const m = computed(() => props.config.machine)
+const hardware = computed(() => m.value.hardware ?? { disks: [] })
 
 function patchMachine(patch: Partial<TalosConfig['machine']>) {
   emit('update:config', { ...props.config, machine: { ...m.value, ...patch } })
+}
+
+function patchHardware(patch: Partial<NonNullable<TalosConfig['machine']['hardware']>>) {
+  patchMachine({ hardware: { ...hardware.value, ...patch } })
+}
+
+// Hardware disk CRUD
+function addDisk() {
+  patchHardware({ disks: [...hardware.value.disks, { _id: nextId(), name: '', size: 0 }] })
+}
+
+function removeDisk(id: string) {
+  patchHardware({ disks: hardware.value.disks.filter((d) => d._id !== id) })
+}
+
+function patchDisk(id: string, patch: Partial<HardDisk>) {
+  patchHardware({
+    disks: hardware.value.disks.map((d) => (d._id === id ? { ...d, ...patch } : d)),
+  })
 }
 
 const errorCount = computed(() => {
@@ -86,6 +106,76 @@ const errorCount = computed(() => {
       </FormField>
     </AppSection>
 
+    <!-- Hardware -->
+    <AppSection
+      title="Hardware"
+      :default-open="false"
+      :badge="hardware.disks.length > 0 ? `${hardware.disks.length} disk${hardware.disks.length > 1 ? 's' : ''}` : undefined"
+      badge-severity="info"
+    >
+      <!-- Disks -->
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-medium text-text">Disks</span>
+          <button type="button" class="btn-ghost text-xs py-0.5 px-2" @click="addDisk">
+            + Add Disk
+          </button>
+        </div>
+        <p v-if="hardware.disks.length === 0" class="text-xs text-muted italic mb-0">
+          Define your disks to enable scaled partition visualization in the Install section.
+        </p>
+        <div class="space-y-2">
+          <div
+            v-for="disk in hardware.disks"
+            :key="disk._id"
+            class="flex gap-2 items-center"
+          >
+            <input
+              class="input-base font-mono text-xs flex-1"
+              placeholder="/dev/sda"
+              :value="disk.name"
+              @input="patchDisk(disk._id, { name: ($event.target as HTMLInputElement).value })"
+            />
+            <div class="flex items-center gap-1 flex-shrink-0">
+              <input
+                class="input-base font-mono text-xs"
+                style="width: 80px"
+                type="number"
+                min="1"
+                placeholder="size"
+                :value="disk.size || ''"
+                @input="patchDisk(disk._id, { size: Number(($event.target as HTMLInputElement).value) })"
+              />
+              <span class="text-xs text-muted">GiB</span>
+            </div>
+            <button
+              type="button"
+              class="text-muted hover:text-red transition-colors flex-shrink-0"
+              @click="removeDisk(disk._id)"
+            >
+              <svg
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Network interfaces summary -->
+      <div class="pt-3 mt-1 border-t border-border/50 flex items-center justify-between">
+        <span class="text-xs text-muted">Network Interfaces</span>
+        <span class="text-xs text-muted">
+          {{ m.network.interfaces.length > 0 ? `${m.network.interfaces.length} configured` : 'none — configure in Network section' }}
+        </span>
+      </div>
+    </AppSection>
+
     <!-- Network -->
     <AppSection title="Network" :default-open="false">
       <InterfaceEditor
@@ -112,16 +202,23 @@ const errorCount = computed(() => {
       <FormField
         label="Install Disk"
         html-for="install-disk"
+        hint="Device path for Talos OS installation"
         :error="fieldError('machine.install.disk')"
       >
         <input
           id="install-disk"
+          list="hardware-disk-list"
           class="input-base font-mono"
           :class="{ 'input-error': fieldError('machine.install.disk') }"
           placeholder="/dev/sda"
           :value="m.install.disk"
           @input="patchMachine({ install: { ...m.install, disk: ($event.target as HTMLInputElement).value } })"
         />
+        <datalist id="hardware-disk-list">
+          <option v-for="disk in hardware.disks" :key="disk._id" :value="disk.name">
+            {{ disk.name }} ({{ disk.size }} GiB)
+          </option>
+        </datalist>
       </FormField>
 
       <FormField
@@ -163,6 +260,17 @@ const errorCount = computed(() => {
         placeholder="console=ttyS0"
         @update:items="patchMachine({ install: { ...m.install, extraKernelArgs: $event } })"
       />
+
+      <!-- Partition layout editor (version-gated) -->
+      <div class="pt-3 mt-1 border-t border-border/50">
+        <DiskPartitionEditor
+          :install-disk="m.install.disk"
+          :disks="hardware.disks"
+          :user-volumes="m.userVolumes"
+          :supported="version.supportedFeatures.userVolumes"
+          @update:user-volumes="patchMachine({ userVolumes: $event })"
+        />
+      </div>
     </AppSection>
 
     <!-- Kubelet -->
@@ -287,24 +395,5 @@ const errorCount = computed(() => {
         @update:items="patchMachine({ sysctls: $event })"
       />
     </AppSection>
-
-    <!-- User Volumes (version-gated) -->
-    <template v-if="version.supportedFeatures.userVolumes">
-      <AppSection
-        title="User Volumes"
-        :default-open="false"
-        :badge="m.userVolumes.length > 0 ? String(m.userVolumes.length) : undefined"
-        badge-severity="info"
-      >
-        <UserVolumeEditor
-          :volumes="m.userVolumes"
-          @update:volumes="patchMachine({ userVolumes: $event })"
-        />
-      </AppSection>
-    </template>
-    <div v-else class="rounded border border-border/50 bg-surface-2 px-4 py-3 flex items-center justify-between">
-      <span class="text-sm font-medium text-muted">User Volumes</span>
-      <span class="badge badge-warning">Requires Talos v1.8+</span>
-    </div>
   </div>
 </template>

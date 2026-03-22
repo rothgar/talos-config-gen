@@ -13,7 +13,7 @@ const emit = defineEmits<{
 function addVolume() {
   emit('update:volumes', [
     ...props.volumes,
-    { _id: nextId(), name: '', minSize: '', maxSize: '', diskSelectorSize: '', diskSelectorName: '' },
+    { _id: nextId(), name: '', minSize: '', maxSize: '', diskSelectorSize: '', diskSelectorName: '', diskSelectorMatch: '', mountPath: '', filesystemType: '' },
   ])
 }
 

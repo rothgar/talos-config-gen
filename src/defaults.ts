@@ -37,6 +37,9 @@ export function makeDefaultConfig(v: TalosVersion): TalosConfig {
       env: [],
       sysctls: [],
       userVolumes: [],
+      hardware: {
+        disks: [],
+      },
     },
     cluster: {
       clusterName: 'talos-cluster',
