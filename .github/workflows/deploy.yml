@@ -41,6 +41,7 @@ jobs:
   # ---------------------------------------------------------------------------
   deploy-worker:
     runs-on: ubuntu-latest
+    environment: worker
     outputs:
       worker_url: ${{ steps.deploy.outputs.worker_url }}
     steps:
