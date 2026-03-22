@@ -3,6 +3,7 @@ import { ref, nextTick, computed } from 'vue'
 import { TalosConfig } from '../types'
 import { TalosVersion } from '../versions'
 import { configToYaml, yamlToConfig } from '../utils/yaml'
+import { nextId } from '../defaults'
 
 const props = defineProps<{
   config: TalosConfig
@@ -154,6 +155,15 @@ async function scrollToBottom() {
 function applyYaml(yaml: string) {
   const result = yamlToConfig(yaml)
   if (result.config) {
+    // Hardware disks are UI-only and not present in Talos YAML.
+    // Preserve existing disks and auto-add an entry if the install disk is new.
+    const existingDisks = props.config.machine.hardware?.disks ?? []
+    const installDisk = result.config.machine.install.disk
+    const hasMatch = !installDisk || existingDisks.some((d) => d.name === installDisk)
+    const disks = hasMatch
+      ? existingDisks
+      : [...existingDisks, { _id: nextId(), name: installDisk, size: 0 }]
+    result.config.machine.hardware = { disks }
     emit('update:config', result.config)
   }
 }

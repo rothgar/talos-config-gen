@@ -20,12 +20,8 @@ const emit = defineEmits<{
 const errorsMapRef = computed(() => props.errorsMap)
 provide('errorsMap', errorsMapRef)
 
-type TopSection = 'machine' | 'cluster'
-const openSection = ref<TopSection>('machine')
-
-function toggle(s: TopSection) {
-  openSection.value = openSection.value === s ? ('cluster' === s ? 'machine' : 'cluster') : s
-}
+const machineOpen = ref(true)
+const clusterOpen = ref(false)
 </script>
 
 <template>
@@ -36,8 +32,8 @@ function toggle(s: TopSection) {
       title="Machine Configuration"
       subtitle="Node-level settings: network, install, kubelet, features"
       accent="primary"
-      :open="openSection === 'machine'"
-      @toggle="toggle('machine')"
+      :open="machineOpen"
+      @toggle="machineOpen = !machineOpen"
     >
       <MachineSection :config="config" :version="version" @update:config="emit('update:config', $event)" />
     </TopCard>
@@ -48,8 +44,8 @@ function toggle(s: TopSection) {
       title="Cluster Configuration"
       subtitle="Cluster-wide settings: control plane, networking, components"
       accent="blue"
-      :open="openSection === 'cluster'"
-      @toggle="toggle('cluster')"
+      :open="clusterOpen"
+      @toggle="clusterOpen = !clusterOpen"
     >
       <ClusterSection :config="config" :version="version" @update:config="emit('update:config', $event)" />
     </TopCard>

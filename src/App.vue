@@ -132,7 +132,7 @@ const currentYaml = computed(() =>
     />
 
     <main class="flex-1 overflow-hidden">
-      <div v-if="view === 'ai'" class="h-[calc(100vh-88px)] flex flex-col">
+      <div v-show="view === 'ai'" class="h-[calc(100vh-88px)] flex flex-col">
         <AIAssistTab
           :config="config"
           :version="version"
@@ -140,7 +140,7 @@ const currentYaml = computed(() =>
         />
       </div>
 
-      <div v-else-if="view === 'visual'" class="h-[calc(100vh-88px)] overflow-y-auto">
+      <div v-if="view === 'visual'" class="h-[calc(100vh-88px)] overflow-y-auto">
         <VisualEditor
           :config="config"
           :version="version"
@@ -149,7 +149,7 @@ const currentYaml = computed(() =>
         />
       </div>
 
-      <div v-else class="h-[calc(100vh-88px)] flex flex-col">
+      <div v-else-if="view === 'yaml'" class="h-[calc(100vh-88px)] flex flex-col">
         <YamlEditor
           :value="currentYaml"
           :parse-error="yamlError"
