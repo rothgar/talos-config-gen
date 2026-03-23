@@ -129,6 +129,7 @@ const currentYaml = computed(() =>
       @download="handleDownload"
       @share="handleShare"
       @share-patch="handleSharePatch"
+      @show-errors="handleViewChange('visual')"
     />
 
     <main class="flex-1 overflow-hidden">

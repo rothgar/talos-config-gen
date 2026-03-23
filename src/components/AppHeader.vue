@@ -16,6 +16,7 @@ const emit = defineEmits<{
   (e: 'download'): void
   (e: 'share'): void
   (e: 'share-patch'): void
+  (e: 'show-errors'): void
 }>()
 
 const copied = ref(false)
@@ -61,12 +62,24 @@ function handleVersionChange(ev: Event) {
       <div class="flex items-center gap-2 flex-shrink-0">
         <!-- Validation badges -->
         <div v-if="errorCount > 0 || warningCount > 0" class="hidden sm:flex items-center gap-1.5">
-          <span v-if="errorCount > 0" class="badge badge-error">
+          <button
+            v-if="errorCount > 0"
+            type="button"
+            class="badge badge-error cursor-pointer hover:opacity-80 transition-opacity"
+            title="Click to view errors"
+            @click="emit('show-errors')"
+          >
             {{ errorCount }} {{ errorCount === 1 ? 'error' : 'errors' }}
-          </span>
-          <span v-if="warningCount > 0" class="badge badge-warning">
+          </button>
+          <button
+            v-if="warningCount > 0"
+            type="button"
+            class="badge badge-warning cursor-pointer hover:opacity-80 transition-opacity"
+            title="Click to view warnings"
+            @click="emit('show-errors')"
+          >
             {{ warningCount }} {{ warningCount === 1 ? 'warning' : 'warnings' }}
-          </span>
+          </button>
         </div>
 
         <!-- Version selector -->
